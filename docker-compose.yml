@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: agenttrust-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: agenttrust-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - VENDOR_GATEWAY_URL=http://vendor-gateway:8001
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  vendor-gateway:
+    build:
+      context: ./vendor-gateway
+      dockerfile: Dockerfile
+    container_name: agenttrust-vendor-gateway
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: agenttrust-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
