@@ -1,0 +1,14 @@
+{
+  "coordinator": {
+    "private_key": "0cea419d87b142a1f102dba5fea2f93dbe5c664c409529121da34d65097c9ef5",
+    "public_key": "d1ad1ea9a289d81b11e385e1eafbf98a01291a2420e1e7163fc8bf2819348214"
+  },
+  "research": {
+    "private_key": "da5b2207a70dac76c909ffd6acedc0a422311db4035140881d9656a5adc941dc",
+    "public_key": "238e19a8df28d089561cfddb75b5648c4da9af0ac31160f747358aaa46fb7e98"
+  },
+  "service": {
+    "private_key": "2703a7dcfbdf45e16b6e9a2e903efaeffc4a5882cc027dcb39354e379a1552ee",
+    "public_key": "f65a60c4fb882469eb2f423caffdd36679ee2cc11b747c83aa0486980dc2ef62"
+  }
+}

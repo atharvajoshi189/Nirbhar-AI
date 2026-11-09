@@ -137,3 +137,4 @@ PS> Get-ChildItem -Recurse -File -Path api,vendor-gateway,sdk,tests,web\src |
    - `SUPABASE_URL` & `SUPABASE_ANON_KEY`
    - `PAYPAL_CLIENT_ID` & `PAYPAL_CLIENT_SECRET` (Sandbox)
    Once populated in `.env`, reloading the FastAPI service will immediately execute real network requests to the Gemini models API, Supabase REST schema, and PayPal Sandbox OAuth token endpoint.
+

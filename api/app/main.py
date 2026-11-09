@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 from app.config import settings
 from app.routers.health import router as health_router
+from app.routers.audit import router as audit_router
+from app.routers.agents import router as agents_router
 
 load_dotenv()
 
@@ -23,6 +25,8 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(audit_router)
+app.include_router(agents_router)
 
 @app.get("/")
 async def root():
