@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Sparkles } from "lucide-react";
+import { ShieldCheck, Menu } from "lucide-react";
 
 const titles: Record<string, { title: string; subtitle: string }> = {
   "/": {
@@ -27,7 +27,9 @@ const titles: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-export const TopBar: React.FC = () => {
+export const TopBar: React.FC<{ onToggleMobileMenu?: () => void }> = ({
+  onToggleMobileMenu,
+}) => {
   const pathname = usePathname();
   const current = titles[pathname] || {
     title: "AgentTrust AI",
@@ -35,12 +37,24 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <header className="h-16 px-8 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
-      <div>
-        <h1 className="text-sm font-semibold text-slate-900 leading-tight">
-          {current.title}
-        </h1>
-        <p className="text-xs text-slate-500">{current.subtitle}</p>
+    <header className="h-16 px-4 md:px-8 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+      <div className="flex items-center gap-3">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 md:hidden"
+            aria-label="Toggle navigation"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        <div>
+          <h1 className="text-sm font-semibold text-slate-900 leading-tight">
+            {current.title}
+          </h1>
+          <p className="text-xs text-slate-500 hidden sm:block">{current.subtitle}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

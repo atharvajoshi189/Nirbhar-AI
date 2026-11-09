@@ -41,11 +41,29 @@ const NAV_ITEMS = [
   },
 ];
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<{ isOpen?: boolean; onClose?: () => void }> = ({
+  isOpen = true,
+  onClose,
+}) => {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-2xs md:hidden"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 z-40 transition-transform duration-200",
+          "fixed md:static inset-y-0 left-0",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}
+      >
       {/* Brand Header */}
       <div className="h-16 px-6 border-b border-slate-200 flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
@@ -112,6 +130,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
     </aside>
+    </>
   );
 };
 

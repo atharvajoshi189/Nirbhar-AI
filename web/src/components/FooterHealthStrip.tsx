@@ -127,17 +127,17 @@ export const FooterHealthStrip: React.FC<FooterHealthStripProps> = ({
   };
 
   return (
-    <footer className="h-12 px-6 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 text-xs text-slate-500 select-none">
+    <footer className="h-12 px-3 sm:px-6 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 text-xs text-slate-500 select-none gap-2">
       {/* Live Service Indicators */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5 text-slate-400 font-medium text-[11px] mr-1">
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-1">
+        <div className="hidden sm:flex items-center gap-1.5 text-slate-400 font-medium text-[11px] mr-1 shrink-0">
           <Activity className="w-3.5 h-3.5 text-indigo-500" />
           <span className="uppercase tracking-wider">Live Rails</span>
         </div>
 
-        {renderServicePill("gemini", "Gemini API", "Google Gemini Reasoning Engine")}
+        {renderServicePill("gemini", "Gemini", "Google Gemini Reasoning Engine")}
         {renderServicePill("supabase", "Supabase", "Postgres & Auth Engine")}
-        {renderServicePill("paypal", "PayPal Sandbox", "PayPal Orders v2 Rails")}
+        {renderServicePill("paypal", "PayPal", "PayPal Orders v2 Rails")}
       </div>
 
       {/* Right controls: Refresh & Proof quick chip */}

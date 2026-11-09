@@ -189,3 +189,4 @@ Proof SHA-256: fe939983c93e410411f9de762ea439df458620235327c8b7a1ff0c5367e3cdeb
    - Create Supabase schema migrations for tasks, proposals, and audit logs.
    - Implement the deterministic Trust Engine rule evaluator in `/api`.
    - Build task creation with budget constraints and wire the Gemini Agent runner.
+
