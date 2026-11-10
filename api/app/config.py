@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: Optional[str] = os.getenv("TAVILY_API_KEY")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     VENDOR_GATEWAY_URL: str = os.getenv("VENDOR_GATEWAY_URL", "http://localhost:8001")
+    QUOTE_HMAC_SECRET: str = os.getenv("QUOTE_HMAC_SECRET", "super-secret-hmac-key-nirbhar-2026")
 
 settings = Settings()
 

@@ -13,6 +13,14 @@ from app.security.auth import get_current_user
 from app.security.agent_keys import agent_key_manager
 from app.services.audit import audit_service
 
+from trust_engine import (
+    ProposalContext,
+    TaskPolicyModel,
+    evaluate_proposal,
+    ReasonCode,
+    TrustDecisionEnum,
+)
+
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 class ApprovalActionRequest(BaseModel):
@@ -83,48 +91,82 @@ async def propose_transaction(
     proposal = req.proposal
     signature = req.signature
 
-    # 1. Fetch Agent Record and Verify Ed25519 Signature
+    # 1. Fetch Agent Record
     agent_res = supabase.table("agents").select("*").eq("id", proposal.agent_id).eq("user_id", user_id).execute()
-    if not agent_res.data:
-        raise HTTPException(status_code=403, detail="Proposing agent not registered or does not belong to user")
-    agent = agent_res.data[0]
-
-    if not agent.get("is_active"):
-        raise HTTPException(status_code=403, detail="Proposing agent is currently deactivated")
-
-    is_valid_sig = agent_key_manager.verify_signature(
-        public_key_hex=agent["public_key"],
-        payload=proposal.model_dump(),
-        signature_hex=signature
-    )
-    if not is_valid_sig:
-        raise HTTPException(
-            status_code=401,
-            detail="Agent Ed25519 signature verification failed. Proposal rejected (Rule 4: Zero Client Trust)."
-        )
+    agent = agent_res.data[0] if agent_res.data else None
 
     # 2. Fetch Authoritative Task and Policy
     task_res = supabase.table("tasks").select("*, task_policies(*)").eq("id", proposal.task_id).eq("user_id", user_id).execute()
-    if not task_res.data:
-        raise HTTPException(status_code=404, detail="Associated task not found")
-    task = task_res.data[0]
+    task = task_res.data[0] if task_res.data else None
 
-    policies = task.get("task_policies")
+    policies = task.get("task_policies") if task else None
     if isinstance(policies, list) and len(policies) > 0:
-        policy = policies[0]
+        raw_policy = policies[0]
     elif isinstance(policies, dict):
-        policy = policies
+        raw_policy = policies
     else:
-        policy = {
-            "auto_approve_threshold": 50.0,
-            "single_tx_limit": float(task.get("budget_max", 50.0)),
+        raw_policy = {
+            "auto_approve_threshold": 20.0,
+            "single_tx_limit": float(task.get("budget_max", 50.0)) if task else 50.0,
             "allowed_domains": [],
             "blacklisted_domains": [],
-            "strict_mode": True
+            "strict_mode": False
         }
 
-    # 3. Verify Quote Authenticity via Vendor Gateway (HMAC + Expiry)
+    task_policy = TaskPolicyModel(
+        auto_approve_threshold=Decimal(str(raw_policy.get("auto_approve_threshold", 20.0))),
+        single_tx_limit=Decimal(str(raw_policy.get("single_tx_limit", 50.0))),
+        allowed_domains=raw_policy.get("allowed_domains", []),
+        blacklisted_domains=raw_policy.get("blacklisted_domains", []),
+        strict_mode=bool(raw_policy.get("strict_mode", False)),
+        policy_version="v2.0.0"
+    )
+
+    # 3. Calculate Committed Spend & Existing Tx History for Replay Protection
+    existing_txs = supabase.table("transactions").select("id, amount, status, quote_id").eq("task_id", proposal.task_id).execute()
+    total_committed = sum(
+        Decimal(str(t["amount"])) for t in (existing_txs.data or []) if t["status"] in ("APPROVED", "COMPLETED", "EXECUTING", "NEEDS_HUMAN_APPROVAL")
+    )
+    seen_hashes = [t["id"] for t in (existing_txs.data or [])]
+
     quote_details = proposal.quote_details or {}
+
+    # Build ProposalContext for isolated Trust Engine
+    proposal_ctx = ProposalContext(
+        task_id=proposal.task_id,
+        user_id=user_id,
+        agent_id=proposal.agent_id,
+        agent_role="service_agent",
+        agent_public_key=agent.get("public_key") if agent else None,
+        agent_is_active=bool(agent.get("is_active", False)) if agent else False,
+        agent_signature=signature,
+        amount=Decimal(str(proposal.amount)),
+        currency=proposal.currency,
+        provider_name=proposal.provider,
+        provider_url=quote_details.get("quote_url", "http://127.0.0.1:8001/quote"),
+        proposal_category=quote_details.get("service_category", "general"),
+        task_title=task.get("title") if task else "",
+        task_category=task.get("category", "competitor_analysis") if task else "",
+        task_exists=bool(task),
+        task_owner_id=task.get("user_id") if task else None,
+        task_is_active=bool(task.get("status") != "ARCHIVED") if task else False,
+        task_budget_max=Decimal(str(task.get("budget_max", 50.0))) if task else Decimal("50.00"),
+        current_committed_spend=total_committed,
+        justification=proposal.justification,
+        fetched_page_text="",
+        advisory_relevance_score=1.0,
+        quote_id=proposal.quote_id,
+        quote_amount=Decimal(str(quote_details.get("amount", proposal.amount))),
+        quote_currency=quote_details.get("currency", proposal.currency),
+        quote_expires_at=quote_details.get("expires_at"),
+        quote_hmac_signature=quote_details.get("hmac_signature"),
+        quote_hmac_secret=getattr(settings, "QUOTE_HMAC_SECRET", os.getenv("QUOTE_HMAC_SECRET", "super-secret-hmac-key-nirbhar-2026")),
+        seen_idempotency_keys=[],
+        seen_payload_hashes=seen_hashes,
+        policy=task_policy
+    )
+
+    # 4. Optional Vendor Gateway Verification (Fast fail-fast for upstream)
     if quote_details.get("hmac_signature") and quote_details.get("expires_at"):
         try:
             async with httpx.AsyncClient(timeout=8.0) as http_client:
@@ -140,96 +182,55 @@ async def propose_transaction(
                         "hmac_signature": quote_details.get("hmac_signature")
                     }
                 )
-                if vg_resp.status_code != 200:
+                if vg_resp.status_code == 403:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Quote HMAC signature verification failed. Quote has been altered or forged."
+                    )
+                elif vg_resp.status_code == 400:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Vendor Gateway rejected quote: {vg_resp.text}"
+                        detail=vg_resp.json().get("detail", f"Quote {proposal.quote_id} expired. Maximum validity is 10 minutes.")
                     )
+                elif vg_resp.status_code != 200:
+                    raise HTTPException(status_code=400, detail=f"Vendor Gateway rejected quote: {vg_resp.text}")
         except httpx.RequestError as e:
-            # If vendor gateway communication glitched, fail closed
             raise HTTPException(status_code=502, detail=f"Vendor Gateway connection error: {e}")
 
-    # 4. Deterministic Trust Engine Evaluation
-    rules_evaluated: List[Dict[str, Any]] = []
-    decision = "APPROVED"
-    risk_score = 5.0
+    # 5. Execute Isolated Pure Trust Engine
+    trust_eval = evaluate_proposal(proposal_ctx)
 
-    # Rule A: Hard Budget Ceiling
-    task_budget = float(task["budget_max"])
-    # Calculate already committed transactions for this task
-    existing_txs = supabase.table("transactions").select("amount, status").eq("task_id", proposal.task_id).execute()
-    total_committed = sum(
-        float(t["amount"]) for t in (existing_txs.data or []) if t["status"] in ("APPROVED", "COMPLETED", "EXECUTING", "NEEDS_HUMAN_APPROVAL")
-    )
-    if total_committed + proposal.amount > task_budget:
-        decision = "BLOCKED"
-        risk_score = 95.0
-        rules_evaluated.append({
-            "rule": "BUDGET_CEILING_CHECK",
-            "passed": False,
-            "reason": f"Transaction amount (${proposal.amount:.2f}) + existing committed (${total_committed:.2f}) exceeds task budget (${task_budget:.2f})"
-        })
-    else:
-        rules_evaluated.append({
-            "rule": "BUDGET_CEILING_CHECK",
-            "passed": True,
-            "message": f"Fits within task budget (${proposal.amount:.2f} <= ${task_budget - total_committed:.2f} remaining)"
-        })
+    # Enforce Phase 3/4 Protocol Rejection Status Codes for Hard Client Forgeries
+    if ReasonCode.AGENT_NOT_AUTHORIZED.value in trust_eval.reason_codes:
+        raise HTTPException(
+            status_code=401,
+            detail="Agent Ed25519 signature verification failed. Proposal rejected (Rule 4: Zero Client Trust)."
+        )
+    if ReasonCode.INVALID_TASK_REFERENCE.value in trust_eval.reason_codes:
+        raise HTTPException(status_code=404, detail="Associated task not found")
+    if ReasonCode.QUOTE_EXPIRED.value in trust_eval.reason_codes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Quote {proposal.quote_id} expired at {quote_details.get('expires_at')}. Maximum validity is 10 minutes."
+        )
+    if ReasonCode.QUOTE_MISMATCH.value in trust_eval.reason_codes:
+        raise HTTPException(
+            status_code=403,
+            detail="Quote HMAC signature verification failed. Quote has been altered or forged."
+        )
 
-    # Rule B: Single Transaction Limit
-    single_limit = float(policy.get("single_tx_limit") or task_budget)
-    if decision != "BLOCKED":
-        if proposal.amount > single_limit:
-            decision = "BLOCKED"
-            risk_score = 90.0
-            rules_evaluated.append({
-                "rule": "SINGLE_TX_LIMIT_CHECK",
-                "passed": False,
-                "reason": f"Amount (${proposal.amount:.2f}) exceeds single transaction limit (${single_limit:.2f})"
-            })
-        else:
-            rules_evaluated.append({
-                "rule": "SINGLE_TX_LIMIT_CHECK",
-                "passed": True,
-                "message": f"Amount fits single transaction ceiling (${proposal.amount:.2f} <= ${single_limit:.2f})"
-            })
-
-    # Rule C: Blacklisted Vendors
-    blacklisted = policy.get("blacklisted_domains") or []
-    if decision != "BLOCKED":
-        if any(b.lower() in proposal.provider.lower() for b in blacklisted):
-            decision = "BLOCKED"
-            risk_score = 99.0
-            rules_evaluated.append({
-                "rule": "BLACKLIST_DOMAIN_CHECK",
-                "passed": False,
-                "reason": f"Provider '{proposal.provider}' is explicitly blacklisted"
-            })
-        else:
-            rules_evaluated.append({
-                "rule": "BLACKLIST_DOMAIN_CHECK",
-                "passed": True,
-                "message": "Provider is not on blacklist"
-            })
-
-    # Rule D: Auto-Approval Threshold
-    auto_approve_threshold = float(policy.get("auto_approve_threshold") or 50.0)
-    if decision != "BLOCKED":
-        if proposal.amount > auto_approve_threshold:
-            decision = "NEEDS_HUMAN_APPROVAL"
-            risk_score = 30.0
-            rules_evaluated.append({
-                "rule": "AUTO_APPROVE_THRESHOLD_CHECK",
-                "passed": False,
-                "action": "Triggered human approval escalation",
-                "reason": f"Amount (${proposal.amount:.2f}) exceeds auto-approval threshold (${auto_approve_threshold:.2f})"
-            })
-        else:
-            rules_evaluated.append({
-                "rule": "AUTO_APPROVE_THRESHOLD_CHECK",
-                "passed": True,
-                "message": f"Amount (${proposal.amount:.2f}) is within auto-approval threshold (${auto_approve_threshold:.2f})"
-            })
+    decision = trust_eval.decision.value
+    risk_score = trust_eval.risk_score
+    rules_evaluated = [c.model_dump() for c in trust_eval.checks_list] + [
+        {
+            "check_name": "summary",
+            "passed": (trust_eval.decision == TrustDecisionEnum.APPROVED),
+            "reason_codes": trust_eval.reason_codes,
+            "explanation": trust_eval.explanation,
+            "policy_version": trust_eval.policy_version,
+            "decision": trust_eval.decision.value,
+        }
+    ]
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -436,4 +437,93 @@ async def reject_transaction(
         "transaction_id": tx_id,
         "rejected_at": now_iso,
         "message": "Transaction rejected by user. Payment blocked."
+    }
+
+@router.get("/{tx_id}/trust-review", status_code=status.HTTP_200_OK)
+async def get_trust_review(
+    tx_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Dedicated endpoint for the Trust Review Screen:
+    Returns the comprehensive 8-check status, provider details, budget remaining,
+    reason codes, policy version, and plain-English explanation.
+    """
+    user_id = current_user["id"]
+    supabase = get_supabase_admin_client()
+
+    tx_res = supabase.table("transactions").select(
+        "*, tasks(*), quotes(*), trust_decisions(*), user_approvals(*)"
+    ).eq("id", tx_id).eq("user_id", user_id).execute()
+
+    if not tx_res.data:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    tx = tx_res.data[0]
+    task = tx.get("tasks") or {}
+    quote = tx.get("quotes") or {}
+    td_list = tx.get("trust_decisions") or []
+    td = td_list[0] if td_list else {}
+
+    raw_rules = td.get("rules_evaluated") or []
+    checks = []
+    explanation = "All 8 security checks evaluated by deterministic Trust Engine."
+    reason_codes = []
+    policy_version = "v2.0.0"
+
+    if isinstance(raw_rules, list):
+        for item in raw_rules:
+            if isinstance(item, dict):
+                if item.get("check_name") == "summary" or item.get("rule") == "summary":
+                    explanation = item.get("explanation", explanation)
+                    reason_codes = item.get("reason_codes", reason_codes)
+                    policy_version = item.get("policy_version", policy_version)
+                else:
+                    checks.append({
+                        "check_name": item.get("check_name") or item.get("rule") or "check",
+                        "passed": bool(item.get("passed", True)),
+                        "severity": item.get("severity", "HARD"),
+                        "message": item.get("message") or item.get("reason") or "Rule verified",
+                        "reason_codes": item.get("reason_codes", [])
+                    })
+
+    # If checks list is empty, provide default 8 checks representation
+    if not checks:
+        default_checks = [
+            "agent_authorization", "task_linkage", "task_relevance", "provider_allowlist",
+            "quote_integrity", "budget_limit", "approval_requirement", "replay_protection"
+        ]
+        is_appr = (tx.get("status") == "APPROVED")
+        checks = [{"check_name": c, "passed": is_appr, "severity": "HARD", "message": "Evaluated"} for c in default_checks]
+
+    # Calculate remaining budget
+    task_budget = float(task.get("budget_max", 0.0))
+    all_txs = supabase.table("transactions").select("amount, status").eq("task_id", tx["task_id"]).execute()
+    committed_spend = sum(
+        float(t["amount"]) for t in (all_txs.data or []) if t["status"] in ("APPROVED", "COMPLETED", "EXECUTING")
+    )
+    budget_remaining = max(task_budget - committed_spend, 0.0)
+
+    decision = tx.get("status", td.get("decision", "PENDING"))
+    eligible_for_human_review = (decision == "NEEDS_HUMAN_APPROVAL")
+
+    return {
+        "transaction_id": tx["id"],
+        "task_id": tx["task_id"],
+        "task_title": task.get("title", "Autonomous Task"),
+        "provider": quote.get("vendor_name") or "Merchant",
+        "provider_url": quote.get("quote_url") or "",
+        "amount": float(tx.get("amount", 0.0)),
+        "currency": tx.get("currency", "USD"),
+        "budget_max": task_budget,
+        "budget_remaining": round(budget_remaining, 2),
+        "decision": decision,
+        "risk_score": float(td.get("risk_score", 5.0)),
+        "decision_hash": td.get("decision_hash", ""),
+        "explanation": explanation,
+        "policy_version": policy_version,
+        "reason_codes": reason_codes,
+        "checks": checks,
+        "eligible_for_human_review": eligible_for_human_review,
+        "created_at": tx.get("created_at")
     }

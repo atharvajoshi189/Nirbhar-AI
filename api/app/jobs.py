@@ -11,7 +11,9 @@ async def get_redis_pool() -> ArqRedis:
     global _redis_pool
     if _redis_pool is None:
         redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
-        _redis_pool = await create_pool(redis_settings)
+        redis_settings.conn_retries = 1
+        redis_settings.conn_timeout = 1
+        _redis_pool = await create_pool(redis_settings, retry=0)
     return _redis_pool
 
 async def enqueue_coordinator_agent(task_id: str, user_id: str) -> Optional[str]:

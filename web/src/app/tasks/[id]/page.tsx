@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProofChip } from "@/components/ProofChip";
 import { ProofDrawer, ProofData } from "@/components/ProofDrawer";
+import { TrustReviewCard, TrustReviewData } from "@/components/TrustReviewCard";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
@@ -280,6 +281,28 @@ function TaskActivityInner() {
     } else {
       const err = await res.json();
       alert(`Approval error: ${err.detail}`);
+    }
+  };
+
+  // Handle Human Rejection
+  const handleReject = async (txId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+    const res = await fetch(`${apiUrl}/transactions/${txId}/reject`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ notes: "Rejected by user via Trust Review screen" }),
+    });
+    if (res.ok) {
+      fetchTaskAndActivity();
+    } else {
+      const err = await res.json();
+      alert(`Rejection error: ${err.detail}`);
     }
   };
 
@@ -563,79 +586,97 @@ function TaskActivityInner() {
         </div>
       )}
 
-      {/* SECTION 3: TRANSACTION DECISIONS */}
+      {/* SECTION 3: TRANSACTION DECISIONS & TRUST REVIEW */}
       {transactions.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-emerald-600" />
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
               <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
-                Transactions &amp; Trust Decisions
+                Trust Review &amp; Authorization Screen
               </h3>
             </div>
             <Link
               href="/transactions"
               className="text-xs font-medium text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
             >
-              <span>View All</span>
+              <span>View All Ledger</span>
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {transactions.map((tx) => {
               const td = tx.trust_decisions && tx.trust_decisions[0];
-              const isNeedsApproval = tx.status === "NEEDS_HUMAN_APPROVAL";
+              const rawRules = td?.rules_evaluated || [];
+              let checks = [];
+              let explanation =
+                (Array.isArray(rawRules) && rawRules.find((r: any) => r.check_name === "summary")?.explanation) ||
+                `Transaction of $${Number(tx.amount).toFixed(2)} evaluated by deterministic Trust Engine (${tx.status}).`;
+
+              if (Array.isArray(rawRules)) {
+                checks = rawRules
+                  .filter((r: any) => r.check_name !== "summary" && r.rule !== "summary")
+                  .map((r: any) => ({
+                    check_name: r.check_name || r.rule || "check",
+                    passed: Boolean(r.passed),
+                    severity: r.severity || "HARD",
+                    message: r.message || r.reason || "Evaluated by policy",
+                    reason_codes: r.reason_codes || [],
+                  }));
+              }
+
+              if (checks.length === 0) {
+                const defaultNames = [
+                  "agent_authorization",
+                  "task_linkage",
+                  "task_relevance",
+                  "provider_allowlist",
+                  "quote_integrity",
+                  "budget_limit",
+                  "approval_requirement",
+                  "replay_protection",
+                ];
+                const isAppr = tx.status === "APPROVED";
+                checks = defaultNames.map((name) => ({
+                  check_name: name,
+                  passed: isAppr,
+                  severity: "HARD",
+                  message: isAppr ? "Verified deterministic rule" : "Awaiting user review or blocked",
+                }));
+              }
+
+              const totalCommitted = transactions
+                .filter((t) => ["APPROVED", "COMPLETED", "EXECUTING"].includes(t.status))
+                .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+              const remainingBudget = Math.max(Number(task?.budget_max || 0) - totalCommitted, 0);
+
+              const reviewData: TrustReviewData = {
+                transaction_id: tx.id,
+                task_id: taskId,
+                provider: tx.quotes?.vendor_name || "Merchant",
+                provider_url: tx.quotes?.quote_url || "",
+                amount: Number(tx.amount),
+                currency: tx.currency || "USD",
+                budget_max: Number(task?.budget_max || 0),
+                budget_remaining: remainingBudget,
+                decision: tx.status,
+                risk_score: Number(td?.risk_score ?? 5.0),
+                explanation,
+                decision_hash: td?.decision_hash,
+                checks,
+                eligible_for_human_review: tx.status === "NEEDS_HUMAN_APPROVAL",
+                created_at: tx.created_at,
+              };
 
               return (
-                <div
+                <TrustReviewCard
                   key={tx.id}
-                  className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-slate-900">
-                        {tx.quotes?.vendor_name || "Merchant"}
-                      </span>
-                      <StatusBadge status={tx.status} />
-                    </div>
-                    <span className="text-[11px] text-slate-500 font-mono block">
-                      Tx ID: {tx.id.substring(0, 8)}... • Amount: ${Number(tx.amount).toFixed(2)} {tx.currency}
-                    </span>
-                    {td && (
-                      <span className="text-[10px] text-slate-500">
-                        Risk Score: {td.risk_score} • Rules: {td.rules_evaluated?.length || 0} evaluated
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {td && (
-                      <ProofChip
-                        label="Decision Proof"
-                        data={{
-                          title: "Trust Decision Proof",
-                          sha256: td.decision_hash,
-                          latency_ms: 12.5,
-                          timestamp: tx.created_at,
-                          source: "Deterministic Trust Engine",
-                          raw: td,
-                        }}
-                        onOpenProof={openProof}
-                      />
-                    )}
-
-                    {isNeedsApproval && (
-                      <button
-                        onClick={() => handleApprove(tx.id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded shadow-xs cursor-pointer"
-                      >
-                        <Check className="w-3 h-3" />
-                        <span>Approve</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  data={reviewData}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onOpenProof={openProof}
+                />
               );
             })}
           </div>

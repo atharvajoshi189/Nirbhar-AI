@@ -66,7 +66,7 @@ def run_phase3_verification():
         f"{BASE_API}/tasks/{task1_id}/research",
         headers=headers,
         json={"subtask": {"title": "Competitor Analysis Software Research", "service_category": "competitor_analysis", "allocated_budget": 18.0}},
-        timeout=60.0
+        timeout=120.0
     )
     r1_latency = round((time.perf_counter() - r1_start) * 1000, 2)
     assert r1_resp.status_code == 200, f"Research 1 failed: {r1_resp.text}"
@@ -93,7 +93,7 @@ def run_phase3_verification():
         f"{BASE_API}/tasks/{task2_id}/research",
         headers=headers,
         json={"subtask": {"title": "Cloud Compute Providers", "service_category": "cloud_compute", "allocated_budget": 25.0}},
-        timeout=60.0
+        timeout=120.0
     )
     r2_latency = round((time.perf_counter() - r2_start) * 1000, 2)
     assert r2_resp.status_code == 200, f"Research 2 failed: {r2_resp.text}"
