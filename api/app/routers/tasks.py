@@ -8,6 +8,8 @@ from app.db.supabase import get_supabase_admin_client
 from app.security.auth import get_current_user
 from app.services.audit import audit_service
 from app.jobs import enqueue_coordinator_agent
+from app.services.research import research_service
+from app.services.service_agent import service_agent
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -166,4 +168,71 @@ async def get_task_activity(
 
     runs_res = supabase.table("agent_runs").select("*, agents(name, role, public_key)").eq("task_id", task_id).eq("user_id", user_id).order("created_at", desc=False).execute()
     return runs_res.data or []
+
+@router.post("/{task_id}/research", status_code=status.HTTP_200_OK)
+async def run_task_research(
+    task_id: str,
+    subtask: Optional[Dict[str, Any]] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Executes real Research Agent function calling with two live tools:
+    web_search (Tavily) and fetch_page.
+    Finds real web candidates, captures tool calls, and signs findings with Ed25519.
+    """
+    user_id = current_user["id"]
+    try:
+        result = research_service.execute_research(
+            task_id=task_id,
+            user_id=user_id,
+            subtask=subtask
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Research agent execution error: {e}")
+
+@router.post("/{task_id}/propose", status_code=status.HTTP_201_CREATED)
+async def run_task_propose(
+    task_id: str,
+    payload: Optional[Dict[str, Any]] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Executes real Service Agent Gemini reasoning call:
+    1. Evaluates discovered web candidates and obtains dynamic HMAC-signed quote from Vendor Gateway.
+    2. Constructs canonical proposal and signs with Service Agent Ed25519 private key.
+    3. Evaluates proposal against deterministic Trust Engine rules and persists transaction.
+    """
+    user_id = current_user["id"]
+    candidates = (payload or {}).get("candidates", [])
+    subtask = (payload or {}).get("subtask")
+
+    try:
+        # 1. Run service agent to evaluate and sign proposal
+        eval_result = await service_agent.evaluate_and_propose(
+            task_id=task_id,
+            user_id=user_id,
+            research_candidates=candidates,
+            subtask=subtask
+        )
+
+        proposal_data = eval_result["proposal"]
+        signature = eval_result["signature"]
+
+        # 2. Forward to authoritative propose_transaction logic
+        from app.routers.transactions import propose_transaction, ProposeTransactionRequest, ProposalPayload
+        req = ProposeTransactionRequest(
+            proposal=ProposalPayload(**proposal_data),
+            signature=signature
+        )
+
+        tx_result = await propose_transaction(req=req, current_user=current_user)
+        return {
+            "service_agent_eval": eval_result,
+            "transaction_result": tx_result
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Service agent proposal error: {traceback.format_exc()}")
 

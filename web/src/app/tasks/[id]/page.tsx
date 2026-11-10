@@ -17,6 +17,14 @@ import {
   Layers,
   CheckCircle2,
   AlertTriangle,
+  Globe,
+  ExternalLink,
+  ShieldCheck,
+  CreditCard,
+  ShoppingBag,
+  ArrowRight,
+  Check,
+  X
 } from "lucide-react";
 
 interface Subtask {
@@ -25,6 +33,15 @@ interface Subtask {
   service_category: string;
   allocated_budget: number;
   target_vendor_hint?: string;
+}
+
+interface ProviderCandidate {
+  provider_name: string;
+  url: string;
+  evidence_snippet: string;
+  estimated_price?: number;
+  currency?: string;
+  source_urls?: string[];
 }
 
 interface AgentRun {
@@ -46,6 +63,27 @@ interface AgentRun {
   };
 }
 
+interface TransactionItem {
+  id: string;
+  task_id: string;
+  quote_id?: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+  quotes?: {
+    vendor_name: string;
+    quote_url: string;
+    quote_details: any;
+  };
+  trust_decisions?: Array<{
+    decision: string;
+    risk_score: number;
+    rules_evaluated: any[];
+    decision_hash: string;
+  }>;
+}
+
 interface TaskDetail {
   id: string;
   title: string;
@@ -60,6 +98,7 @@ interface TaskDetail {
     allowed_domains: string[];
     blacklisted_domains: string[];
   }>;
+  transactions?: TransactionItem[];
 }
 
 function TaskActivityInner() {
@@ -69,6 +108,8 @@ function TaskActivityInner() {
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [loading, setLoading] = useState(true);
+  const [runningProcurement, setRunningProcurement] = useState(false);
+  const [procurementStatus, setProcurementStatus] = useState<string | null>(null);
   const [proofData, setProofData] = useState<ProofData | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -126,6 +167,18 @@ function TaskActivityInner() {
           fetchTaskAndActivity();
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+          filter: `task_id=eq.${taskId}`,
+        },
+        () => {
+          fetchTaskAndActivity();
+        }
+      )
       .subscribe();
 
     // 2. Polling fallback (every 2.5s) to guarantee fast updates
@@ -144,15 +197,118 @@ function TaskActivityInner() {
     setDrawerOpen(true);
   };
 
-  // Find coordinator completed plan if any
+  // Trigger Research & Procurement Agent flow
+  const handleRunProcurement = async () => {
+    try {
+      setRunningProcurement(true);
+      setProcurementStatus("Research Agent: Searching live web via Tavily and parsing pages...");
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      // 1. Run Research Agent
+      const resResp = await fetch(`${apiUrl}/tasks/${taskId}/research`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          subtask: subtasks[0] || {
+            title: task?.title,
+            service_category: "competitor_analysis",
+            allocated_budget: task?.budget_max,
+          },
+        }),
+      });
+
+      if (!resResp.ok) {
+        const errJson = await resResp.json();
+        throw new Error(errJson.detail || "Research failed");
+      }
+      const researchData = await resResp.json();
+      setProcurementStatus("Service Agent: Contacting Vendor Gateway & evaluating proposal with Gemini...");
+
+      // 2. Run Service Agent
+      const propResp = await fetch(`${apiUrl}/tasks/${taskId}/propose`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          candidates: researchData.candidates || [],
+          subtask: subtasks[0] || {
+            title: task?.title,
+            service_category: "competitor_analysis",
+          },
+        }),
+      });
+
+      if (!propResp.ok) {
+        const propErr = await propResp.json();
+        throw new Error(propErr.detail || "Proposal failed");
+      }
+
+      setProcurementStatus("Complete! Transaction evaluated by Trust Engine.");
+      await fetchTaskAndActivity();
+    } catch (e: any) {
+      alert(`Procurement error: ${e.message}`);
+    } finally {
+      setRunningProcurement(false);
+      setTimeout(() => setProcurementStatus(null), 3000);
+    }
+  };
+
+  // Handle Human Approval
+  const handleApprove = async (txId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+    const res = await fetch(`${apiUrl}/transactions/${txId}/approve`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ notes: "Approved via Task Activity UI" }),
+    });
+    if (res.ok) {
+      fetchTaskAndActivity();
+    } else {
+      const err = await res.json();
+      alert(`Approval error: ${err.detail}`);
+    }
+  };
+
+  // Find coordinator completed plan
   const coordinatorRun = runs.find(
-    (r) => r.status === "COMPLETED" && r.output_payload?.plan
+    (r) => (r.agents?.role === "coordinator" || r.output_payload?.plan) && r.status === "COMPLETED"
   );
   const coordinatorPlan = coordinatorRun?.output_payload?.plan;
   const subtasks: Subtask[] = coordinatorPlan?.subtasks || [];
 
+  // Find research runs and candidates
+  const researchRuns = runs.filter(
+    (r) => r.agents?.role === "research" || r.output_payload?.candidates
+  );
+  const latestResearchRun = researchRuns[researchRuns.length - 1];
+  const discoveredCandidates: ProviderCandidate[] = latestResearchRun?.output_payload?.candidates || [];
+
+  // Find service proposal runs
+  const serviceRuns = runs.filter(
+    (r) => r.agents?.role === "service" || r.output_payload?.proposal
+  );
+  const latestServiceRun = serviceRuns[serviceRuns.length - 1];
+  const serviceProposal = latestServiceRun?.output_payload?.proposal;
+  const sandboxQuote = latestServiceRun?.output_payload?.sandbox_quote;
+
+  const transactions = task?.transactions || [];
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Navigation Bar */}
       <div className="flex items-center justify-between">
         <Link
@@ -162,13 +318,15 @@ function TaskActivityInner() {
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Dashboard</span>
         </Link>
-        <button
-          onClick={() => fetchTaskAndActivity()}
-          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs cursor-pointer"
-        >
-          <RefreshCw className="w-3 h-3" />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchTaskAndActivity()}
+            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs cursor-pointer"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Task Overview Header */}
@@ -209,19 +367,292 @@ function TaskActivityInner() {
             </div>
           )}
         </div>
+
+        {/* Action Trigger Banner */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-xs text-slate-600">
+            {procurementStatus ? (
+              <span className="text-indigo-600 font-medium animate-pulse">
+                {procurementStatus}
+              </span>
+            ) : (
+              <span>Autonomous procurement pipeline (Research Agent + Service Agent + Vendor Gateway)</span>
+            )}
+          </div>
+          <button
+            onClick={handleRunProcurement}
+            disabled={runningProcurement}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white shadow-xs transition-colors cursor-pointer ${
+              runningProcurement
+                ? "bg-slate-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
+          >
+            {runningProcurement ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Running Pipeline...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Run Research & Procurement</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Live Agent Stream Section */}
+      {/* SECTION 1: RESEARCH FINDINGS & DISCOVERED PROVIDERS (Requirement 1 & 4) */}
+      {discoveredCandidates.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
+                Discovered Market Providers (Live Web Research)
+              </h3>
+            </div>
+            {latestResearchRun && (
+              <ProofChip
+                label={`Tavily + Gemini • ${latestResearchRun.latency_ms}ms`}
+                data={{
+                  title: "Research Agent Execution Proof",
+                  sha256: latestResearchRun.signature,
+                  latency_ms: Number(latestResearchRun.latency_ms),
+                  timestamp: latestResearchRun.created_at,
+                  source: latestResearchRun.model_name,
+                  raw: latestResearchRun.output_payload,
+                }}
+                onOpenProof={openProof}
+              />
+            )}
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Real companies and services discovered from the live web via Gemini function calling (<code className="bg-slate-100 px-1 py-0.5 rounded text-[11px] font-mono">web_search</code> &amp; <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px] font-mono">fetch_page</code>).
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {discoveredCandidates.map((cand, idx) => (
+              <div
+                key={idx}
+                className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-lg space-y-2 hover:border-slate-300 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-900">
+                      {cand.provider_name}
+                    </h4>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded font-medium mt-0.5">
+                      <Globe className="w-2.5 h-2.5" />
+                      Discovered from the web
+                    </span>
+                  </div>
+
+                  {cand.estimated_price !== undefined && (
+                    <span className="text-xs font-mono font-semibold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                      ${Number(cand.estimated_price).toFixed(2)} {cand.currency || "USD"}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-600 line-clamp-3 leading-relaxed">
+                  {cand.evidence_snippet}
+                </p>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
+                  <a
+                    href={cand.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium truncate max-w-[200px]"
+                  >
+                    <span className="truncate">{cand.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+
+                  <ProofChip
+                    label="Tool Trace"
+                    data={{
+                      title: `${cand.provider_name} Web Evidence`,
+                      sha256: latestResearchRun?.signature,
+                      latency_ms: latestResearchRun?.latency_ms,
+                      timestamp: latestResearchRun?.created_at,
+                      source: "Live Web (Tavily/Page)",
+                      raw: cand,
+                    }}
+                    onOpenProof={openProof}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 2: SANDBOX MERCHANT QUOTE & PROPOSAL (Requirement 2 & 4) */}
+      {(sandboxQuote || serviceProposal) && (
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
+                Vendor Gateway Dynamic Quote &amp; Procurement Proposal
+              </h3>
+            </div>
+            {latestServiceRun && (
+              <ProofChip
+                label={`Ed25519 Signed • ${latestServiceRun.latency_ms}ms`}
+                data={{
+                  title: "Service Procurement Proposal Proof",
+                  sha256: latestServiceRun.signature,
+                  latency_ms: Number(latestServiceRun.latency_ms),
+                  timestamp: latestServiceRun.created_at,
+                  source: latestServiceRun.model_name,
+                  raw: latestServiceRun.output_payload,
+                }}
+                onOpenProof={openProof}
+              />
+            )}
+          </div>
+
+          <div className="p-4 bg-indigo-50/30 border border-indigo-100 rounded-lg space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-semibold text-slate-900">
+                    {sandboxQuote?.merchant_name || serviceProposal?.provider}
+                  </h4>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded font-medium">
+                    <ShieldCheck className="w-2.5 h-2.5" />
+                    Sandbox merchant
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-slate-500">
+                  Payee: {sandboxQuote?.payee_email} • Quote ID: {sandboxQuote?.quote_id || serviceProposal?.quote_id}
+                </span>
+              </div>
+
+              <div className="text-right">
+                <span className="text-sm font-semibold font-mono text-slate-900 block">
+                  ${Number(sandboxQuote?.amount || serviceProposal?.amount || 0).toFixed(2)} USD
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  Expires in 10 mins (HMAC-SHA256)
+                </span>
+              </div>
+            </div>
+
+            {serviceProposal?.justification && (
+              <div className="text-xs text-slate-600 bg-white p-2.5 rounded border border-slate-200">
+                <span className="font-medium text-slate-800">Agent Rationale: </span>
+                {serviceProposal.justification}
+              </div>
+            )}
+
+            {sandboxQuote?.pricing_breakdown && (
+              <div className="flex items-center gap-4 text-[11px] font-mono text-slate-500 pt-1">
+                <span>Base: ${sandboxQuote.pricing_breakdown.base_rate}</span>
+                <span>Tier: {sandboxQuote.pricing_breakdown.tier_multiplier}x</span>
+                <span>Scope Factor: {sandboxQuote.pricing_breakdown.scope_complexity_factor}x</span>
+                <span>Units: {sandboxQuote.pricing_breakdown.units}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 3: TRANSACTION DECISIONS */}
+      {transactions.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
+                Transactions &amp; Trust Decisions
+              </h3>
+            </div>
+            <Link
+              href="/transactions"
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {transactions.map((tx) => {
+              const td = tx.trust_decisions && tx.trust_decisions[0];
+              const isNeedsApproval = tx.status === "NEEDS_HUMAN_APPROVAL";
+
+              return (
+                <div
+                  key={tx.id}
+                  className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-900">
+                        {tx.quotes?.vendor_name || "Merchant"}
+                      </span>
+                      <StatusBadge status={tx.status} />
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-mono block">
+                      Tx ID: {tx.id.substring(0, 8)}... • Amount: ${Number(tx.amount).toFixed(2)} {tx.currency}
+                    </span>
+                    {td && (
+                      <span className="text-[10px] text-slate-500">
+                        Risk Score: {td.risk_score} • Rules: {td.rules_evaluated?.length || 0} evaluated
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {td && (
+                      <ProofChip
+                        label="Decision Proof"
+                        data={{
+                          title: "Trust Decision Proof",
+                          sha256: td.decision_hash,
+                          latency_ms: 12.5,
+                          timestamp: tx.created_at,
+                          source: "Deterministic Trust Engine",
+                          raw: td,
+                        }}
+                        onOpenProof={openProof}
+                      />
+                    )}
+
+                    {isNeedsApproval && (
+                      <button
+                        onClick={() => handleApprove(tx.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded shadow-xs cursor-pointer"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Approve</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 4: LIVE AGENT LOGS & DECOMPOSITION STREAM */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bot className="w-4 h-4 text-indigo-600" />
             <h2 className="text-sm font-semibold text-slate-900">
-              Live Agent Activity & Decomposition Stream
+              Agent Telemetry &amp; Verification Stream
             </h2>
           </div>
           <span className="text-[11px] text-slate-500 font-mono">
-            Realtime Supabase + Redis ARQ
+            Realtime Supabase + Ed25519 Cryptographic Log
           </span>
         </div>
 
@@ -242,6 +673,10 @@ function TaskActivityInner() {
                 run.agents?.name ||
                 (run.agents?.role === "coordinator"
                   ? "Coordinator Agent"
+                  : run.agents?.role === "research"
+                  ? "Research Agent"
+                  : run.agents?.role === "service"
+                  ? "Service Procurement Agent"
                   : "Autonomous Agent");
 
               const isCompleted = run.status === "COMPLETED";
@@ -250,11 +685,16 @@ function TaskActivityInner() {
 
               const summaryText =
                 isFailed
-                  ? `Execution Failed: ${run.output_payload?.error || "Upstream Gemini API call rejected. Fail-closed: zero simulation (Rule 1)."}`
+                  ? `Execution Failed: ${run.output_payload?.error || "Upstream call rejected. Fail-closed: zero simulation (Rule 1)."}`
                   : run.output_payload?.plan?.summary ||
-                    (isStarted
-                      ? "Decomposing task requirements and allocating subtask budgets..."
-                      : "Autonomous step in progress");
+                    run.output_payload?.findings_summary ||
+                    (run.output_payload?.candidates
+                      ? `Discovered ${run.output_payload.candidates.length} web candidate providers using Tavily & Fetch Page.`
+                      : run.output_payload?.proposal
+                      ? `Formulated signed proposal for ${run.output_payload.proposal.provider} ($${run.output_payload.proposal.amount}).`
+                      : isStarted
+                      ? "Autonomous step in progress..."
+                      : "Task step complete.");
 
               return (
                 <div
@@ -306,7 +746,6 @@ function TaskActivityInner() {
                       </div>
                     </div>
 
-                    {/* Proof Chip */}
                     <ProofChip
                       label={`${run.model_name.replace("models/", "")} • ${run.latency_ms}ms`}
                       data={{
@@ -337,7 +776,7 @@ function TaskActivityInner() {
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600" />
                 <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
-                  Planned Subtasks & Budget Allocation
+                  Planned Subtasks &amp; Budget Allocation
                 </h3>
               </div>
               <span className="text-xs font-mono font-medium text-slate-700">

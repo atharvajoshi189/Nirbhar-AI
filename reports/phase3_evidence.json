@@ -1,0 +1,395 @@
+{
+  "requirement_1": {
+    "task1": {
+      "id": "71574ff4-c310-403e-aac8-ed6f16d72d6b",
+      "category": "competitor_analysis",
+      "providers": [
+        {
+          "provider_name": "Conjointly",
+          "url": "https://conjointly.com/",
+          "evidence_snippet": "Conjointly offers a great survey tool with multiple question types, randomisation blocks, and multilingual support. The Basic tier is always free.",
+          "estimated_price": 0.0,
+          "currency": "USD",
+          "source_urls": [
+            "https://conjointly.com/pricing",
+            "https://conjointly.com/solutions/pricing-research"
+          ]
+        },
+        {
+          "provider_name": "OpinionX",
+          "url": "https://www.opinionx.co/",
+          "evidence_snippet": "Every pricing method on OpinionX, including Van Westendorp, Gabor Granger and conjoint analysis with all four conjoint reports, is on our free plan for up to 25 participants per survey.",
+          "estimated_price": 0.0,
+          "currency": "USD",
+          "source_urls": [
+            "https://www.opinionx.co/pricing",
+            "https://www.opinionx.co/blog/measure-price-sensitivity"
+          ]
+        }
+      ],
+      "tool_calls": [
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "general service research platforms online tools pricing"
+          },
+          "results_count": 4,
+          "source_urls": [
+            "https://conjointly.com/solutions/pricing-research",
+            "https://www.insightplatforms.com/top-25-research-marketplaces",
+            "https://blog.flexmr.net/online-consumer-research-tools",
+            "https://www.gsa.gov/buy-through-us/products-and-services/professional-services/buy-services/oasis-plus/buyers-guide/complete-market-research"
+          ],
+          "latency_ms": 3521.38,
+          "timestamp": 1794314469.0862546
+        },
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "Conjointly pricing plans subscription cost"
+          },
+          "results_count": 4,
+          "source_urls": [
+            "https://conjointly.com/pricing",
+            "https://www.opinionx.co/blog/conjoint-analysis-tools",
+            "https://www.quantilope.com/resources/best-conjoint-analysis-tools-in-2026-full-comparison",
+            "https://conjointly.com/solutions/pricing-research"
+          ],
+          "latency_ms": 3293.01,
+          "timestamp": 1794314473.7442248
+        },
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "OpinionX pricing plans cost survey tool"
+          },
+          "results_count": 4,
+          "source_urls": [
+            "https://www.opinionx.co/blog/best-van-westendorp-survey-tools",
+            "https://www.opinionx.co/pricing",
+            "https://www.opinionx.co/changelog",
+            "https://www.opinionx.co/blog/measure-price-sensitivity"
+          ],
+          "latency_ms": 3738.16,
+          "timestamp": 1794314479.4814413
+        }
+      ],
+      "source_urls": [
+        "https://conjointly.com/solutions/pricing-research",
+        "https://www.insightplatforms.com/top-25-research-marketplaces",
+        "https://blog.flexmr.net/online-consumer-research-tools",
+        "https://www.gsa.gov/buy-through-us/products-and-services/professional-services/buy-services/oasis-plus/buyers-guide/complete-market-research",
+        "https://conjointly.com/pricing",
+        "https://www.opinionx.co/blog/conjoint-analysis-tools",
+        "https://www.quantilope.com/resources/best-conjoint-analysis-tools-in-2026-full-comparison",
+        "https://www.opinionx.co/blog/best-van-westendorp-survey-tools",
+        "https://www.opinionx.co/pricing",
+        "https://www.opinionx.co/changelog",
+        "https://www.opinionx.co/blog/measure-price-sensitivity"
+      ],
+      "signature": "2b1495cacfc768d0eb74206ae1b9c132966bc618a38462fccf85726c30a805526f652de9e818701d4c94bac9f73d2a6ccea85988c5248a529580cd07ec627b0f",
+      "latency_ms": 21512.16
+    },
+    "task2": {
+      "id": "29cb7f03-b6ac-49fe-a744-744647e253b2",
+      "category": "cloud_compute",
+      "providers": [
+        {
+          "provider_name": "SurveyMonkey",
+          "url": "https://www.surveymonkey.com/pricing/",
+          "evidence_snippet": "SurveyMonkey offers individual and basic survey options, with entry-level individual tiers and standard features available starting around $16 to $30 per user/month depending on plan structures.",
+          "estimated_price": 25.0,
+          "currency": "USD",
+          "source_urls": [
+            "https://www.surveymonkey.com/pricing/",
+            "https://www.prolific.com/resources/qualtrics-surveymonkey-prolific-higher-quality-data"
+          ]
+        },
+        {
+          "provider_name": "Prolific",
+          "url": "https://www.prolific.com/",
+          "evidence_snippet": "Prolific provides access to high-quality research participants with a flat platform fee structure (such as 25% to 30% on top of participant rewards), allowing low-budget or individual academic/market researchers to run small surveys under the $50 ceiling.",
+          "estimated_price": 30.0,
+          "currency": "USD",
+          "source_urls": [
+            "https://www.prolific.com/resources/qualtrics-surveymonkey-prolific-higher-quality-data"
+          ]
+        }
+      ],
+      "tool_calls": [
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "affordable ai research agent service API pricing under 50 USD"
+          },
+          "results_count": 4,
+          "source_urls": [
+            "https://theaiagentindex.com/ai-research-agents",
+            "https://aionx.co/ai-for-business-entrepreneurs/affordable-ai-tools-small-business",
+            "https://www.bakedwith.com/en/blog/dataforseo-vs-openseo",
+            "https://www.aipricing.guru"
+          ],
+          "latency_ms": 4891.74,
+          "timestamp": 1794314504.4084406
+        },
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "general research service providers platforms pricing under 50 usd"
+          },
+          "results_count": 4,
+          "source_urls": [
+            "https://www.insightplatforms.com/top-25-research-marketplaces",
+            "https://support.researchallofus.org/hc/en-us/articles/360039539411-Getting-Started-and-What-to-Know-About-Costs",
+            "https://www.grandviewresearch.com",
+            "https://finance.yahoo.com/news/cloud-computing-iaas-pricing-cut-100000387.html"
+          ],
+          "latency_ms": 3533.95,
+          "timestamp": 1794314520.1936123
+        },
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "\"SurveyMonkey\" pricing plans individual monthly OR \"Qualtrics\" OR \"Prolific\" participant pricing"
+          },
+          "results_count": 4,
+          "source_urls": [
+            "https://www.prolific.com/resources/qualtrics-surveymonkey-prolific-higher-quality-data",
+            "https://survicate.com/blog/surveymonkey-pricing",
+            "https://www.surveymonkey.com/pricing/individual/details",
+            "https://www.surveymonkey.com/pricing"
+          ],
+          "latency_ms": 2983.47,
+          "timestamp": 1794314524.3523588
+        }
+      ],
+      "source_urls": [
+        "https://theaiagentindex.com/ai-research-agents",
+        "https://aionx.co/ai-for-business-entrepreneurs/affordable-ai-tools-small-business",
+        "https://www.bakedwith.com/en/blog/dataforseo-vs-openseo",
+        "https://www.aipricing.guru",
+        "https://www.insightplatforms.com/top-25-research-marketplaces",
+        "https://support.researchallofus.org/hc/en-us/articles/360039539411-Getting-Started-and-What-to-Know-About-Costs",
+        "https://www.grandviewresearch.com",
+        "https://finance.yahoo.com/news/cloud-computing-iaas-pricing-cut-100000387.html",
+        "https://www.prolific.com/resources/qualtrics-surveymonkey-prolific-higher-quality-data",
+        "https://survicate.com/blog/surveymonkey-pricing",
+        "https://www.surveymonkey.com/pricing/individual/details",
+        "https://www.surveymonkey.com/pricing"
+      ],
+      "signature": "ecbe284af887a2997f9e2d388559cc76f541dada030de004e23c3a988a0d71d078f852cede2a846d48e31642d3f475234775a9a71d201b3e0334e0d259fc6a07",
+      "latency_ms": 33174.14
+    }
+  },
+  "requirement_2": {
+    "quote_scope_short": {
+      "quote_id": "QTE-3FB6D761CCFA",
+      "merchant_id": "merch_apexresearch",
+      "merchant_name": "Apex Global Market Intelligence",
+      "payee_email": "sb-apexresearch@business.example.com",
+      "service_category": "competitor_analysis",
+      "service_name": "Market Review",
+      "amount": 15.75,
+      "currency": "USD",
+      "pricing_breakdown": {
+        "base_rate": 15.0,
+        "tier_multiplier": 1.0,
+        "scope_complexity_factor": 1.05,
+        "units": 1,
+        "raw_subtotal": 15.75
+      },
+      "created_at": "2026-11-10T12:42:09.234955+00:00",
+      "expires_at": "2026-11-10T12:52:09.234955+00:00",
+      "hmac_signature": "b41bad0c71ee03715957fd2dbb10712d06c2e947df5bdada5b45d4521b64895c"
+    },
+    "quote_scope_extensive": {
+      "quote_id": "QTE-9F97DBC8E40B",
+      "merchant_id": "merch_apexresearch",
+      "merchant_name": "Apex Global Market Intelligence",
+      "payee_email": "sb-apexresearch@business.example.com",
+      "service_category": "competitor_analysis",
+      "service_name": "Market Review",
+      "amount": 21.0,
+      "currency": "USD",
+      "pricing_breakdown": {
+        "base_rate": 15.0,
+        "tier_multiplier": 1.0,
+        "scope_complexity_factor": 1.4,
+        "units": 1,
+        "raw_subtotal": 21.0
+      },
+      "created_at": "2026-11-10T12:42:09.601937+00:00",
+      "expires_at": "2026-11-10T12:52:09.601937+00:00",
+      "hmac_signature": "1ef61b8128e67b8b17f12cb6d92f8ea4d6c86e614044e55bdf8270d8f0725579"
+    },
+    "price_difference": 5.25
+  },
+  "requirement_3": {
+    "original_amount": 15.75,
+    "tampered_amount": 1.0,
+    "status_code": 403,
+    "rejection_response": {
+      "detail": "Quote HMAC signature verification failed. Quote has been altered or forged."
+    }
+  },
+  "requirement_4": {
+    "expires_at_tested": "2026-11-10T12:27:09.984391+00:00",
+    "status_code": 400,
+    "rejection_response": {
+      "detail": "Quote QTE-EXPIRED-TEST expired at 2026-11-10T12:27:09.984391+00:00. Maximum validity is 10 minutes."
+    }
+  },
+  "requirement_5": {
+    "forged_signature": "baddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecafbaddecaf",
+    "status_code": 401,
+    "rejection_response": {
+      "detail": "Agent Ed25519 signature verification failed. Proposal rejected (Rule 4: Zero Client Trust)."
+    }
+  },
+  "step_6_legitimate_transaction": {
+    "service_agent_eval": {
+      "run_id": "116e2deb-be82-4dc1-b286-6c645d90b343",
+      "proposal": {
+        "agent_id": "08111d40-f90d-40c1-a913-31bc5a8be7f8",
+        "task_id": "71574ff4-c310-403e-aac8-ed6f16d72d6b",
+        "provider": "Apex Global Market Intelligence",
+        "service": "Competitor Analysis Software Research",
+        "amount": 19.05,
+        "currency": "USD",
+        "quote_id": "QTE-4A7389DF9D1E",
+        "justification": "Apex Global Market Intelligence was selected because its quote of $19.05 USD complies fully with the $20.00 hard budget ceiling and auto-approval policy. Furthermore, it provides a cryptographically signed HMAC quote with instant PayPal Sandbox settlement capabilities, ensuring secure and verified execution over external reference benchmarks.",
+        "quote_details": {
+          "quote_id": "QTE-4A7389DF9D1E",
+          "merchant_id": "merch_apexresearch",
+          "merchant_name": "Apex Global Market Intelligence",
+          "payee_email": "sb-apexresearch@business.example.com",
+          "service_category": "competitor_analysis",
+          "service_name": "Competitor Analysis Software Research",
+          "amount": 19.05,
+          "currency": "USD",
+          "pricing_breakdown": {
+            "base_rate": 15.0,
+            "tier_multiplier": 1.0,
+            "scope_complexity_factor": 1.27,
+            "units": 1,
+            "raw_subtotal": 19.05
+          },
+          "created_at": "2026-11-10T12:42:16.094866+00:00",
+          "expires_at": "2026-11-10T12:52:16.094866+00:00",
+          "hmac_signature": "446a953141e6239b82456b0f4974c131c25d8b0fb8df6a9e9542544e65ff31c5"
+        }
+      },
+      "signature": "0d04b55b13ef2fe1fa05f42b7a1b19bcd397f5f04efab2295b619e4e6a72a74b7aec5b5b569b882b27de413b6dc20bfce89eb8d89f76a0b016dacfdeed6fb70d",
+      "sandbox_quote": {
+        "quote_id": "QTE-4A7389DF9D1E",
+        "merchant_id": "merch_apexresearch",
+        "merchant_name": "Apex Global Market Intelligence",
+        "payee_email": "sb-apexresearch@business.example.com",
+        "service_category": "competitor_analysis",
+        "service_name": "Competitor Analysis Software Research",
+        "amount": 19.05,
+        "currency": "USD",
+        "pricing_breakdown": {
+          "base_rate": 15.0,
+          "tier_multiplier": 1.0,
+          "scope_complexity_factor": 1.27,
+          "units": 1,
+          "raw_subtotal": 19.05
+        },
+        "created_at": "2026-11-10T12:42:16.094866+00:00",
+        "expires_at": "2026-11-10T12:52:16.094866+00:00",
+        "hmac_signature": "446a953141e6239b82456b0f4974c131c25d8b0fb8df6a9e9542544e65ff31c5"
+      },
+      "latency_ms": 5272.17
+    },
+    "transaction_result": {
+      "transaction": {
+        "id": "698f1090-dfd4-4918-9e45-d94e13d5848f",
+        "task_id": "71574ff4-c310-403e-aac8-ed6f16d72d6b",
+        "user_id": "78036c01-215e-4df7-a627-7ff84aa44dbc",
+        "quote_id": "9c891566-813f-45ef-9b0c-58f2f6ca62ab",
+        "amount": 19.05,
+        "currency": "USD",
+        "status": "APPROVED",
+        "created_at": "2026-11-10T12:42:23.751622+00:00",
+        "updated_at": "2026-11-10T12:42:22.464819+00:00"
+      },
+      "quote": {
+        "id": "9c891566-813f-45ef-9b0c-58f2f6ca62ab",
+        "task_id": "71574ff4-c310-403e-aac8-ed6f16d72d6b",
+        "user_id": "78036c01-215e-4df7-a627-7ff84aa44dbc",
+        "agent_id": "08111d40-f90d-40c1-a913-31bc5a8be7f8",
+        "vendor_name": "Apex Global Market Intelligence",
+        "quote_url": "http://127.0.0.1:8001/quote",
+        "amount": 19.05,
+        "currency": "USD",
+        "quote_details": {
+          "amount": 19.05,
+          "currency": "USD",
+          "quote_id": "QTE-4A7389DF9D1E",
+          "created_at": "2026-11-10T12:42:16.094866+00:00",
+          "expires_at": "2026-11-10T12:52:16.094866+00:00",
+          "merchant_id": "merch_apexresearch",
+          "payee_email": "sb-apexresearch@business.example.com",
+          "service_name": "Competitor Analysis Software Research",
+          "merchant_name": "Apex Global Market Intelligence",
+          "hmac_signature": "446a953141e6239b82456b0f4974c131c25d8b0fb8df6a9e9542544e65ff31c5",
+          "service_category": "competitor_analysis",
+          "pricing_breakdown": {
+            "units": 1,
+            "base_rate": 15.0,
+            "raw_subtotal": 19.05,
+            "tier_multiplier": 1.0,
+            "scope_complexity_factor": 1.27
+          }
+        },
+        "raw_metadata": {
+          "quote_id": "QTE-4A7389DF9D1E",
+          "justification": "Apex Global Market Intelligence was selected because its quote of $19.05 USD complies fully with the $20.00 hard budget ceiling and auto-approval policy. Furthermore, it provides a cryptographically signed HMAC quote with instant PayPal Sandbox settlement capabilities, ensuring secure and verified execution over external reference benchmarks.",
+          "ed25519_signature": "0d04b55b13ef2fe1fa05f42b7a1b19bcd397f5f04efab2295b619e4e6a72a74b7aec5b5b569b882b27de413b6dc20bfce89eb8d89f76a0b016dacfdeed6fb70d"
+        },
+        "created_at": "2026-11-10T12:42:22.318454+00:00",
+        "updated_at": "2026-11-10T12:42:22.318454+00:00"
+      },
+      "trust_decision": {
+        "id": "21382485-8c17-4f0d-8558-a5844f499e44",
+        "transaction_id": "698f1090-dfd4-4918-9e45-d94e13d5848f",
+        "task_id": "71574ff4-c310-403e-aac8-ed6f16d72d6b",
+        "user_id": "78036c01-215e-4df7-a627-7ff84aa44dbc",
+        "decision": "APPROVED",
+        "rules_evaluated": [
+          {
+            "rule": "BUDGET_CEILING_CHECK",
+            "passed": true,
+            "message": "Fits within task budget ($19.05 <= $20.00 remaining)"
+          },
+          {
+            "rule": "SINGLE_TX_LIMIT_CHECK",
+            "passed": true,
+            "message": "Amount fits single transaction ceiling ($19.05 <= $20.00)"
+          },
+          {
+            "rule": "BLACKLIST_DOMAIN_CHECK",
+            "passed": true,
+            "message": "Provider is not on blacklist"
+          },
+          {
+            "rule": "AUTO_APPROVE_THRESHOLD_CHECK",
+            "passed": true,
+            "message": "Amount ($19.05) is within auto-approval threshold ($20.00)"
+          }
+        ],
+        "risk_score": 5.0,
+        "decision_hash": "05eff199b06165ca56ee2d0418e453da1c27e086804097d3d382190551ac8738",
+        "created_at": "2026-11-10T12:42:23.751622+00:00",
+        "updated_at": "2026-11-10T12:42:22.765287+00:00"
+      },
+      "proof": {
+        "ed25519_verified": true,
+        "agent_public_key": "f65a60c4fb882469eb2f423caffdd36679ee2cc11b747c83aa0486980dc2ef62",
+        "decision_hash": "05eff199b06165ca56ee2d0418e453da1c27e086804097d3d382190551ac8738",
+        "hmac_verified": true
+      }
+    }
+  }
+}
