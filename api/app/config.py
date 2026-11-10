@@ -12,7 +12,20 @@ class Settings(BaseSettings):
     
     # Gemini
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    _gemini_override: Optional[str] = None
+
+    @property
+    def active_gemini_key(self) -> Optional[str]:
+        if self._gemini_override is not None:
+            return self._gemini_override
+        return self.GEMINI_API_KEY
+
+    def kill_gemini_key(self):
+        self._gemini_override = "AIzaSy_KILLED_INVALID_KEY_PHASE2"
+
+    def restore_gemini_key(self):
+        self._gemini_override = None
     
     # Supabase
     SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL")

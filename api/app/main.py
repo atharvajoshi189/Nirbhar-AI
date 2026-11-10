@@ -7,6 +7,9 @@ from app.config import settings
 from app.routers.health import router as health_router
 from app.routers.audit import router as audit_router
 from app.routers.agents import router as agents_router
+from app.routers.tasks import router as tasks_router
+from app.routers.transactions import router as transactions_router
+from app.routers.stats import router as stats_router
 
 load_dotenv()
 
@@ -27,6 +30,9 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(audit_router)
 app.include_router(agents_router)
+app.include_router(tasks_router)
+app.include_router(transactions_router)
+app.include_router(stats_router)
 
 @app.get("/")
 async def root():

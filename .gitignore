@@ -48,3 +48,8 @@ Thumbs.db
 *.swp
 *.swo
 
+# Local binaries and tool downloads
+tools/
+*.rdb
+*.exe
+

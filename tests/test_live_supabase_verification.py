@@ -120,17 +120,16 @@ def run_live_verification():
         print(f"    - ID={t['id']}, user_id={t['user_id']}, title='{t['title']}'")
 
     # Assert User A only sees User A's task
-    assert len(tasks_seen_by_a) == 1
-    assert tasks_seen_by_a[0]["id"] == task_a["id"]
-    assert tasks_seen_by_a[0]["user_id"] == user_a_id
+    assert all(t["user_id"] == user_a_id for t in tasks_seen_by_a)
+    assert any(t["id"] == task_a["id"] for t in tasks_seen_by_a)
     assert not any(t["id"] == task_b["id"] for t in tasks_seen_by_a)
     print("  [PASSED] User A cannot see Task B!")
 
     # User B queries tasks
     res_query_b = httpx.get(f"{SUPABASE_URL}/rest/v1/tasks?select=id,title,user_id", headers=headers_b)
     tasks_seen_by_b = res_query_b.json()
-    assert len(tasks_seen_by_b) == 1
-    assert tasks_seen_by_b[0]["id"] == task_b["id"]
+    assert all(t["user_id"] == user_b_id for t in tasks_seen_by_b)
+    assert any(t["id"] == task_b["id"] for t in tasks_seen_by_b)
     assert not any(t["id"] == task_a["id"] for t in tasks_seen_by_b)
     print("  [PASSED] User B cannot see Task A!")
 
@@ -139,34 +138,47 @@ def run_live_verification():
     assert len(res_direct.json()) == 0
     print(f"  [PASSED] Direct ID lookup of Task B by User A returned 0 rows (RLS enforced).")
 
-    # 6. Audit Chain: Insert 5 cryptographically linked events
-    print("\n[Step 5] Inserting 5 tamper-evident audit events for User A...")
-    prev_h = GENESIS_PREV_HASH
+    # 6. Audit Chain: Query existing sequence or start from 1
+    print("\n[Step 5] Checking current audit ledger and appending 5 tamper-evident audit events for User A...")
+    latest_query = httpx.get(
+        f"{SUPABASE_URL}/rest/v1/audit_events?user_id=eq.{user_a_id}&order=sequence_number.desc&limit=1",
+        headers=headers_admin
+    )
+    latest_rows = latest_query.json() if latest_query.status_code == 200 else []
+    if latest_rows:
+        current_seq = latest_rows[0]["sequence_number"]
+        prev_h = latest_rows[0]["hash"]
+        print(f"  Existing audit chain detected at sequence {current_seq}. Latest hash: {prev_h[:16]}...")
+    else:
+        current_seq = 0
+        prev_h = GENESIS_PREV_HASH
+
     events_inserted = []
     event_types = ["TASK_CREATED", "AGENT_COORDINATOR_DISPATCH", "QUOTE_RECEIVED", "TRUST_DECISION_APPROVED", "PAYMENT_SCHEDULED"]
 
     for i in range(1, 6):
+        seq = current_seq + i
         payload = {
-            "step": i,
+            "step": seq,
             "action": event_types[i - 1],
             "task_id": task_a["id"],
             "amount": 25.0 * i,
-            "proof_nonce": f"nirbhar-nonce-{i}"
+            "proof_nonce": f"nirbhar-nonce-{seq}"
         }
         event_record = audit_service.build_event(
             user_id=user_a_id,
             event_type=event_types[i - 1],
             payload=payload,
-            sequence_number=i,
+            sequence_number=seq,
             prev_hash=prev_h,
             task_id=task_a["id"]
         )
-        row = event_record.model_dump()
+        row = event_record.model_dump(exclude_none=True)
         insert_res = httpx.post(f"{SUPABASE_URL}/rest/v1/audit_events", headers=headers_a, json=row)
-        assert insert_res.status_code in (200, 201), f"Failed inserting event {i}: {insert_res.text}"
+        assert insert_res.status_code in (200, 201), f"Failed inserting event {seq}: {insert_res.text}"
         events_inserted.append(insert_res.json()[0])
         prev_h = event_record.hash
-        print(f"  Event #{i} [{event_types[i-1]}]: Seq={i}, Hash={event_record.hash[:16]}..., PrevHash={event_record.prev_hash[:16]}...")
+        print(f"  Event #{seq} [{event_types[i-1]}]: Seq={seq}, Hash={event_record.hash[:16]}..., PrevHash={event_record.prev_hash[:16]}...")
 
     # 7. Verify audit chain via FastAPI /audit/verify endpoint
     print("\n[Step 6] Calling /audit/verify on FastAPI engine...")
@@ -175,18 +187,18 @@ def run_live_verification():
     verify_data = api_verify_res.json()
     print(f"  Verification Result: Valid={verify_data['valid']}, TotalEvents={verify_data['total_events']}, LatestHash={verify_data['latest_hash'][:16]}...")
     assert verify_data["valid"] is True
-    assert verify_data["total_events"] == 5
-    print("  [PASSED] Audit chain verification succeeded (5/5 events validated)!")
+    assert verify_data["total_events"] >= 5
+    print(f"  [PASSED] Audit chain verification succeeded ({verify_data['total_events']} events validated from genesis)!")
 
     # 8. Tamper with a row directly in database and verify detection
-    print("\n[Step 7] Adversarial Tampering: altering row #3 directly in database...")
-    tampered_payload = dict(events_inserted[2]["payload"])
-    tampered_payload["amount"] = 999999.00 # Adversary alters amount from 75.0 to 999999.0
+    print("\n[Step 7] Adversarial Tampering: verifying tamper detection if row payload is altered...")
+    all_events_res = httpx.get(f"{SUPABASE_URL}/rest/v1/audit_events?user_id=eq.{user_a_id}&order=sequence_number.asc", headers=headers_admin)
+    all_events = all_events_res.json()
 
-    # Since trigger forbids UPDATE, we can test tampering by either disabling trigger or testing in-engine verification
-    print("  Testing engine tamper detection with altered row #3 payload...")
-    tampered_chain = [dict(e) for e in events_inserted]
-    tampered_chain[2]["payload"] = tampered_payload
+    # Adversary alters amount in event sequence 3
+    tampered_chain = [dict(e) for e in all_events]
+    tampered_chain[2]["payload"] = dict(tampered_chain[2]["payload"])
+    tampered_chain[2]["payload"]["amount"] = 999999.00 # altered payload
 
     tamper_result = audit_service.verify_chain(tampered_chain)
     print(f"  Tamper Result: Valid={tamper_result.valid}, TamperedAtSequence={tamper_result.tampered_at_sequence}")
@@ -202,3 +214,4 @@ def run_live_verification():
 
 if __name__ == "__main__":
     run_live_verification()
+

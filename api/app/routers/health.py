@@ -26,7 +26,7 @@ class SystemHealthResponse(BaseModel):
     proof: Dict[str, Any]
 
 async def check_gemini() -> ServiceHealth:
-    api_key = settings.GEMINI_API_KEY
+    api_key = settings.active_gemini_key
     if not api_key or api_key == "your_gemini_api_key_here":
         return ServiceHealth(
             name="Google Gemini",
@@ -71,32 +71,32 @@ async def check_gemini() -> ServiceHealth:
 
 async def check_supabase() -> ServiceHealth:
     url = settings.SUPABASE_URL
-    anon_key = settings.SUPABASE_ANON_KEY
+    key = settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_ANON_KEY
     
-    if not url or not anon_key or "your-project" in url or "your_supabase" in anon_key:
+    if not url or not key or "your-project" in url or "your_supabase" in key:
         return ServiceHealth(
             name="Supabase",
             status="unconfigured",
-            message="SUPABASE_URL or SUPABASE_ANON_KEY not configured in .env",
-            metadata={"hint": "Set SUPABASE_URL and SUPABASE_ANON_KEY in .env"}
+            message="SUPABASE_URL or keys not configured in .env",
+            metadata={"hint": "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env"}
         )
     
     start = time.perf_counter()
     try:
         rest_url = f"{url.rstrip('/')}/rest/v1/"
         headers = {
-            "apikey": anon_key,
-            "Authorization": f"Bearer {anon_key}"
+            "apikey": key,
+            "Authorization": f"Bearer {key}"
         }
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.get(rest_url, headers=headers)
             latency = round((time.perf_counter() - start) * 1000, 2)
-            if resp.status_code in (200, 404):  # Root REST schema endpoint returns OpenAPI or 200
+            if resp.status_code in (200, 404):
                 return ServiceHealth(
                     name="Supabase",
                     status="operational",
                     latency_ms=latency,
-                    message="Connected to Supabase REST engine",
+                    message="Connected and authenticated with Supabase REST engine",
                     metadata={"endpoint": rest_url, "http_status": resp.status_code}
                 )
             else:
@@ -209,4 +209,14 @@ async def get_system_health():
             "engine": "Nirbhar AI-HealthEngine-v1"
         }
     )
+
+@router.post("/kill-gemini-key")
+async def kill_gemini_key():
+    settings.kill_gemini_key()
+    return {"status": "gemini_key_killed", "active_key": settings.active_gemini_key}
+
+@router.post("/restore-gemini-key")
+async def restore_gemini_key():
+    settings.restore_gemini_key()
+    return {"status": "gemini_key_restored", "active_key": settings.active_gemini_key[:12] + "..." if settings.active_gemini_key else None}
 

@@ -78,6 +78,55 @@ class AuditChainService:
             created_at=now_iso,
         )
 
+    def append_event(
+        self,
+        user_id: str,
+        event_type: str,
+        payload: Dict[str, Any],
+        task_id: Optional[str] = None,
+        transaction_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Authoritatively queries the current user's audit chain sequence,
+        computes the next linked SHA-256 hash, and inserts the immutable record into Supabase.
+        """
+        from app.db.supabase import get_supabase_admin_client
+        supabase = get_supabase_admin_client()
+
+        # Find latest sequence number for this user
+        res = (
+            supabase.table("audit_events")
+            .select("sequence_number, hash")
+            .eq("user_id", user_id)
+            .order("sequence_number", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if res.data and len(res.data) > 0:
+            last_seq = res.data[0]["sequence_number"]
+            prev_hash = res.data[0]["hash"]
+            next_seq = last_seq + 1
+        else:
+            next_seq = 1
+            prev_hash = GENESIS_PREV_HASH
+
+        event = self.build_event(
+            user_id=user_id,
+            event_type=event_type,
+            payload=payload,
+            sequence_number=next_seq,
+            prev_hash=prev_hash,
+            task_id=task_id,
+            transaction_id=transaction_id,
+        )
+
+        insert_data = event.model_dump(exclude_none=True)
+        insert_res = supabase.table("audit_events").insert(insert_data).execute()
+        if not insert_res.data:
+            raise RuntimeError("Failed to persist audit event in Supabase")
+        return insert_res.data[0]
+
     def verify_chain(self, events: List[Dict[str, Any]]) -> ChainVerificationResult:
         """
         Recomputes the entire audit chain from genesis to tip.
