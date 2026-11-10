@@ -55,3 +55,4 @@ def test_wrong_agent_key_fails_verification(key_manager):
     coord_pub = key_manager.get_public_keys()["coordinator"]
     is_valid = key_manager.verify_signature(coord_pub, proposal, signature)
     assert is_valid is False
+

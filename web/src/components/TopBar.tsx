@@ -32,7 +32,7 @@ export const TopBar: React.FC<{ onToggleMobileMenu?: () => void }> = ({
 }) => {
   const pathname = usePathname();
   const current = titles[pathname] || {
-    title: "AgentTrust AI",
+    title: "Nirbhar AI",
     subtitle: "Authorization & Trust Engine",
   };
 

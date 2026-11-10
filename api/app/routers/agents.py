@@ -47,7 +47,7 @@ async def register_agents_for_user(req: AgentRegistrationRequest):
             pub_key = public_keys.get(role)
             agent_data = {
                 "user_id": req.user_id,
-                "name": f"AgentTrust {role.capitalize()} Agent",
+                "name": f"Nirbhar AI {role.capitalize()} Agent",
                 "role": role,
                 "public_key": pub_key,
                 "is_active": True,
@@ -92,3 +92,4 @@ async def verify_agent_signature(req: VerifySignatureRequest):
         "valid": is_valid,
         "algorithm": "Ed25519"
     }
+

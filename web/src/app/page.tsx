@@ -22,7 +22,7 @@ export default function DashboardPage() {
     timestamp: "2026-11-09T14:00:00.000Z",
     source: "FastAPI /health",
     raw: {
-      engine: "AgentTrust AI Deterministic Trust Engine",
+      engine: "Nirbhar AI Deterministic Trust Engine",
       rule_1: "NO-SIMULATION RULE strictly enforced",
       rule_2: "Cryptographic proof chips for all state mutations",
       rule_4: "Fail-closed sandbox barrier between agents and PayPal",

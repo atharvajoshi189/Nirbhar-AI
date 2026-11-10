@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function LoginPage() {
   const [emailMode, setEmailMode] = useState(false);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -34,19 +35,31 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) {
-        setMessage(error.message);
+      if (password) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          setMessage(error.message);
+        } else {
+          window.location.href = "/";
+        }
       } else {
-        setMessage("Check your email for the magic link!");
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) {
+          setMessage(error.message);
+        } else {
+          setMessage("Check your email for the magic link!");
+        }
       }
     } catch (err: unknown) {
-      setMessage(err instanceof Error ? err.message : "Email sign in failed");
+      setMessage(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -62,7 +75,7 @@ export default function LoginPage() {
           </div>
           <div>
             <span className="text-base font-semibold tracking-tight text-slate-900 block">
-              AgentTrust AI
+              Nirbhar AI
             </span>
             <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 block">
               Trust & Authorization Layer
@@ -123,6 +136,13 @@ export default function LoginPage() {
                 autoFocus
                 className="w-full h-11 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
               />
+              <input
+                type="password"
+                placeholder="Password (optional for magic link)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-11 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
+              />
               <button
                 type="submit"
                 disabled={loading}
@@ -132,7 +152,7 @@ export default function LoginPage() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <span>Send Magic Link</span>
+                    <span>{password ? "Sign In" : "Send Magic Link"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -160,3 +180,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

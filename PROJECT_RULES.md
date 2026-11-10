@@ -1,4 +1,4 @@
-# AgentTrust AI — Project Rules & Architecture Standards
+# Nirbhar AI — Project Rules & Architecture Standards
 
 These rules are strict, foundational, and non-negotiable across every phase of development.
 

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- AgentTrust AI — Phase 1 Supabase Schema Migration
+-- Nirbhar AI — Phase 1 Supabase Schema Migration
 -- Tables: tasks, task_policies, agents, agent_runs, quotes, transactions,
 --         trust_decisions, user_approvals, paypal_orders, audit_events
 -- Enforces: Strict Row Level Security (RLS) & Immutable Append-Only Audit Ledger

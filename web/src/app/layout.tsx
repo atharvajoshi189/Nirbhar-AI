@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AgentTrust AI — Trust & Authorization Layer",
+  title: "Nirbhar AI — Trust & Authorization Layer",
   description: "Independent trust and authorization layer sitting between autonomous AI agents and payment rails.",
 };
 

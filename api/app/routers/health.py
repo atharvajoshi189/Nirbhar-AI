@@ -206,7 +206,7 @@ async def get_system_health():
         proof={
             "sha256": proof_hash,
             "verified_at": now_iso,
-            "engine": "AgentTrust-HealthEngine-v1"
+            "engine": "Nirbhar AI-HealthEngine-v1"
         }
     )
 

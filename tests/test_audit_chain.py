@@ -115,3 +115,4 @@ def test_tamper_detection_missing_sequence(audit_service):
     res = audit_service.verify_chain(events)
     assert res.valid is False
     assert "Sequence discontinuity" in res.error_details
+

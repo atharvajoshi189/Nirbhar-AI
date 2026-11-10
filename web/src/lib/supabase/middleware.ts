@@ -6,11 +6,10 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // If Supabase credentials are not configured, allow inspection of app shell with notice
-  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes("your-project") || supabaseKey.includes("your_supabase")) {
+  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes("your-project")) {
     return supabaseResponse;
   }
 
@@ -58,3 +57,4 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse;
 }
+

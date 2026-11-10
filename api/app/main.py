@@ -13,7 +13,7 @@ load_dotenv()
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="AgentTrust AI Core API: Trust Engine & Verification Layer"
+    description="Nirbhar AI Core API: Trust Engine & Verification Layer"
 )
 
 app.add_middleware(

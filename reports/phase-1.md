@@ -1,15 +1,15 @@
 # Phase 1 Completion Report: Supabase Schema, Row Level Security, Tamper-Evident Audit Chain, & Agent Keypairs
 
-**Project:** AgentTrust AI  
+**Project:** Nirbhar AI  
 **Phase:** Phase 1 — Data Architecture, Security Isolation & Cryptographic Registry  
-**Date:** 2026-11-09T17:31:00Z  
+**Date:** 2026-11-10T04:15:00Z  
 **Governing Document:** [`/PROJECT_RULES.md`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/PROJECT_RULES.md)
 
 ---
 
 ## 1. Executive Summary & What Was Built
 
-In Phase 1, we established the database foundation, security isolation boundaries, and cryptographic verification infrastructure for **AgentTrust AI**:
+In Phase 1, we established the database foundation, security isolation boundaries, and cryptographic verification infrastructure for **Nirbhar AI**:
 
 1. **Supabase SQL Migrations**:
    - Built comprehensive migration file in [`/api/migrations/001_initial_schema.sql`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/api/migrations/001_initial_schema.sql) and [`/supabase/migrations/20261109000000_phase1_schema.sql`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/supabase/migrations/20261109000000_phase1_schema.sql).
@@ -42,7 +42,7 @@ In Phase 1, we established the database foundation, security isolation boundarie
 
 4. **Supabase Auth & Protected Routes in Web App**:
    - Integrated `@supabase/ssr` with Next.js App Router.
-   - Clean, focused login page at [`/login`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/web/src/app/login/page.tsx) featuring the AgentTrust shield logo and exactly two buttons:
+   - Clean, focused login page at [`/login`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/web/src/app/login/page.tsx) featuring the Nirbhar AI shield logo and exactly two buttons:
      1. **Continue with Google**
      2. **Continue with Email**
    - Protected routes handled via [`web/src/middleware.ts`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/web/src/middleware.ts) and [`web/src/lib/supabase/middleware.ts`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/web/src/lib/supabase/middleware.ts), redirecting unauthenticated users to `/login`.
@@ -56,38 +56,44 @@ In Phase 1, we established the database foundation, security isolation boundarie
 
 ---
 
-## 2. Files Created & Modified
+## 2. Real Verification Against Live Supabase Project
 
-| File | Purpose |
-|---|---|
-| `api/migrations/001_initial_schema.sql` | Supabase migration with 10 tables, indexes, triggers, and RLS policies |
-| `supabase/migrations/20261109000000_phase1_schema.sql` | CLI-compatible Supabase migration |
-| `api/app/security/agent_keys.py` | Ed25519 keypair manager and proposal signing/verification engine |
-| `api/app/services/audit.py` | Tamper-evident hash chain service and verification engine |
-| `api/app/db/supabase.py` | Authoritative backend Supabase admin & user client factories |
-| `api/app/routers/audit.py` | FastAPI router with `/audit/verify` and event appending |
-| `api/app/routers/agents.py` | FastAPI router for agent key inspection and signature verification |
-| `api/app/main.py` | Registered `/audit` and `/agents` routers |
-| `web/src/lib/supabase/client.ts` | Browser Supabase client |
-| `web/src/lib/supabase/server.ts` | Server component Supabase client |
-| `web/src/lib/supabase/middleware.ts` | Next.js middleware session handler |
-| `web/src/middleware.ts` | Global route protection middleware |
-| `web/src/app/login/page.tsx` | Clean login page (Logo + 2 buttons: Google & Email) |
-| `web/src/app/auth/callback/route.ts` | Auth exchange callback route handler |
-| `tests/conftest.py` | Pytest path configuration |
-| `tests/test_audit_chain.py` | 5 unit tests for audit hash chain and tamper detection |
-| `tests/test_agent_keys.py` | 4 unit tests for Ed25519 keypair generation and signing |
-| `tests/test_rls_isolation.py` | 7 unit tests for RLS policy coverage, indexes, and user isolation |
-| `tests/test_audit_api.py` | 2 integration tests for `/agents/keys` and `/agents/verify-signature` |
-| `tests/capture_login_screenshot.py` | Playwright script to verify login UI rendering |
-| `reports/phase-1.md` | This verification report |
+### 2.1 Live Supabase Auth User Creation
+Using the live Supabase project (`https://vuhyryjnrlgueielndvz.supabase.co`), two genuine test users were created via the Supabase Auth Admin API:
+- **User A**:
+  - Email: `user_a_nirbhar@test.com`
+  - User ID: `78036c01-215e-4df7-a627-7ff84aa44dbc`
+  - Status: Confirmed & Authenticated (JWT token returned: 803 bytes)
+- **User B**:
+  - Email: `user_b_nirbhar@test.com`
+  - User ID: `68a78bb1-e8ae-4e50-8345-2fe39d99aba3`
+  - Status: Confirmed & Authenticated (JWT token returned: 803 bytes)
+
+### 2.2 Browser UI Login & Protected Route Redirect Verification
+Executed via Playwright against `http://localhost:3000`:
+1. **Logged-out navigation to `/`**:
+   - Navigation intercepted by middleware.
+   - Redirected to: `http://localhost:3000/login`
+   - Screenshot captured: [`reports/protected_route_redirect.png`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/reports/protected_route_redirect.png)
+2. **Browser UI Authentication**:
+   - Entered `user_a_nirbhar@test.com` and password.
+   - Clicked "Sign In".
+   - Verified session establishment and automated redirect to dashboard: `http://localhost:3000/`
+   - Screenshot captured: [`reports/logged_in_dashboard.png`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/reports/logged_in_dashboard.png)
+
+```
+Visiting http://localhost:3000/ while logged out...
+Current URL after navigation: http://localhost:3000/login
+Captured protected route redirect screenshot at: reports/protected_route_redirect.png
+Signing in through browser UI as real Supabase user: user_a_nirbhar@test.com...
+Successfully authenticated! Current URL: http://localhost:3000/
+Captured authenticated dashboard screenshot at: reports/logged_in_dashboard.png
+```
 
 ---
 
-## 3. Automated Test Execution & Verifiable Evidence
+## 3. Automated Pytest Test Suite (19 / 19 Tests Passed)
 
-### 3.1 Pytest Suite (19 / 19 Tests Passed)
-Ran `pytest ../tests -v` inside the Python 3.11 virtual environment:
 ```
 ============================= test session starts =============================
 platform win32 -- Python 3.11.0, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\Atharva\OneDrive\Desktop\AgentTrust AI\api\.venv\Scripts\python.exe
@@ -117,33 +123,17 @@ collecting ... collected 19 items
 ..\tests\test_rls_isolation.py::test_indexes_on_task_id_transaction_id_and_created_at PASSED [ 94%]
 ..\tests\test_rls_isolation.py::test_functional_rls_query_filter PASSED  [100%]
 
-============================= 19 passed in 0.76s ==============================
+============================= 19 passed in 2.39s ==============================
 ```
-
-### 3.2 Live Agent Key Registry Endpoint
-Polled `GET http://127.0.0.1:8000/agents/keys`:
-```json
-{
-  "status": "active",
-  "algorithm": "Ed25519",
-  "public_keys": {
-    "coordinator": "d1ad1ea9a289d81b11e385e1eafbf98a01291a2420e1e7163fc8bf2819348214",
-    "research": "238e19a8df28d089561cfddb75b5648c4da9af0ac31160f747358aaa46fb7e98",
-    "service": "f65a60c4fb882469eb2f423caffdd36679ee2cc11b747c83aa0486980dc2ef62"
-  }
-}
-```
-
-### 3.3 Next.js Build & Login Page Validation
-- **Build Status**: `next build` succeeded with 11 static and dynamic pages generated without error.
-- **Login Page Screenshot**: Automated capture saved to [`/reports/login-page.png`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/reports/login-page.png).
-- **Element Inspection**: Verified strictly two buttons on `/login`: `['Continue with Google', 'Continue with Email']`.
 
 ---
 
-## 4. Known Issues & Next Steps
+## 4. Pending Live SQL Migration Run
 
-1. **Phase 2 Scope**:
-   - Implement the deterministic Trust Engine rule evaluator (budget ceiling check, single-transaction limits, domain allowlisting/blacklisting).
-   - Wire task creation UI in `/web/src/app/tasks/new/page.tsx`.
-   - Wire the agent runner using the Gemini API and Tavily search, signing all agent outputs with the Ed25519 private keys.
+The automated test script [`tests/test_live_supabase_verification.py`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/tests/test_live_supabase_verification.py) is staged and authenticated against your Supabase project.
+
+To complete the database tables:
+1. Open your Supabase Dashboard:
+   `https://supabase.com/dashboard/project/vuhyryjnrlgueielndvz/sql/new`
+2. Paste the SQL migration from [`api/migrations/001_initial_schema.sql`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/api/migrations/001_initial_schema.sql) and click **RUN**.
+3. Once executed, `tests/test_live_supabase_verification.py` will automatically create tasks for User A and User B, confirm that User A gets 0 rows when attempting to query User B's tasks, insert 5 linked audit events, verify the chain, and demonstrate tamper rejection.

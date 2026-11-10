@@ -41,3 +41,4 @@ async def test_agent_verify_signature_endpoint():
         })
         assert res_tampered.status_code == 200
         assert res_tampered.json()["valid"] is False
+

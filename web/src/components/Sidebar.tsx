@@ -71,7 +71,7 @@ export const Sidebar: React.FC<{ isOpen?: boolean; onClose?: () => void }> = ({
         </div>
         <div>
           <span className="text-sm font-semibold tracking-tight text-slate-900 block">
-            AgentTrust AI
+            Nirbhar AI
           </span>
           <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 block -mt-0.5">
             Trust & Auth Layer

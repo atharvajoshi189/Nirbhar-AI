@@ -1,8 +1,8 @@
-"""AgentTrust AI SDK for autonomous agent integration."""
+"""Nirbhar AI SDK for autonomous agent integration."""
 from typing import Dict, Any, Optional
 import httpx
 
-class AgentTrustClient:
+class Nirbhar AIClient:
     def __init__(self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key

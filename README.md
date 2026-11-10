@@ -1,10 +1,10 @@
-# AgentTrust AI
+# Nirbhar AI
 
 > Independent trust and authorization layer sitting between autonomous AI agents and payment rails (PayPal Sandbox).
 
 ## Architecture Overview
 
-AgentTrust AI ensures autonomous AI agents cannot execute arbitrary, malicious, or out-of-budget transactions. 
+Nirbhar AI ensures autonomous AI agents cannot execute arbitrary, malicious, or out-of-budget transactions. 
 1. **User creates a task** with an explicit budget and constraints.
 2. **AI Agents plan and research** vendors, proposing itemized payment actions.
 3. **Deterministic Trust Engine** evaluates transactions: `APPROVED`, `NEEDS_HUMAN_APPROVAL`, or `BLOCKED`.
@@ -17,7 +17,7 @@ AgentTrust AI ensures autonomous AI agents cannot execute arbitrary, malicious, 
 - `/web` — Next.js 14+ (App Router, TypeScript, Tailwind CSS, shadcn/ui design system).
 - `/api` — FastAPI (Python 3.11, async) core orchestrator, Trust Engine, and health telemetry.
 - `/vendor-gateway` — Dedicated sandboxed payment execution service interfacing with PayPal Sandbox.
-- `/sdk` — Client library for agents to propose transactions to AgentTrust AI.
+- `/sdk` — Client library for agents to propose transactions to Nirbhar AI.
 - `/tests` — End-to-end and integration test suites.
 - `/reports` — Detailed phase completion reports with verifiable logs and evidence.
 

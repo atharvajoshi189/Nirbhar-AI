@@ -15,7 +15,7 @@ export interface ServiceStatus {
   metadata?: Record<string, unknown>;
 }
 
-export class AgentTrustClient {
+export class Nirbhar AIClient {
   private baseUrl: string;
   private apiKey?: string;
 

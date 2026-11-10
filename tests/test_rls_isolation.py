@@ -114,3 +114,4 @@ def test_functional_rls_query_filter():
     # User C (anonymous or different user) sees zero rows
     user_c_results = evaluate_rls_select(database_records, current_user_id="user-c")
     assert len(user_c_results) == 0
+

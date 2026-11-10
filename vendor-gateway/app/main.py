@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(
-    title="AgentTrust Vendor Gateway",
+    title="Nirbhar AI Vendor Gateway",
     version="0.1.0",
     description="Dedicated sandboxed payment gateway executing PayPal Sandbox orders"
 )
@@ -23,7 +23,7 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {
-        "service": "AgentTrust Vendor Gateway",
+        "service": "Nirbhar AI Vendor Gateway",
         "status": "ready",
         "environment": os.getenv("PAYPAL_ENVIRONMENT", "sandbox")
     }

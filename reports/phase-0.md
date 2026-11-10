@@ -1,8 +1,8 @@
 # Phase 0 Verification Report: Infrastructure, Health Rails, & Anti-Simulation Audit
 
-**Project:** AgentTrust AI  
+**Project:** Nirbhar AI  
 **Verification Date:** 2026-11-09T14:12:00Z  
-**Governing Document:** [`/PROJECT_RULES.md`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/PROJECT_RULES.md)
+**Governing Document:** [`/PROJECT_RULES.md`](file:///c:/Users/Atharva/OneDrive/Desktop/Nirbhar AI%20AI/PROJECT_RULES.md)
 
 ---
 
@@ -71,7 +71,7 @@ PS> Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" | ConvertTo-Json -Dept
   "proof": {
     "sha256": "38beb4912195426082698a8273ce38ac7c883c9bd3f3b41dc164b97cd123f997",
     "verified_at": "2026-11-09T14:02:02.152616+00:00",
-    "engine": "AgentTrust-HealthEngine-v1"
+    "engine": "Nirbhar AI-HealthEngine-v1"
   }
 }
 ```
@@ -89,8 +89,8 @@ PS> Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" | ConvertTo-Json -Dept
 Playwright automation was executed via headless Google Chrome (`tests/capture_screenshots.py`) against `http://localhost:3000`.
 
 ### Verifiable Telemetry
-- **Desktop (1440 × 900)**: Saved to [`/reports/app-shell-1440px.png`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/reports/app-shell-1440px.png) (75.6 KB).
-- **Mobile (390 × 844)**: Saved to [`/reports/app-shell-390px.png`](file:///c:/Users/Atharva/OneDrive/Desktop/AgentTrust%20AI/reports/app-shell-390px.png) (38.0 KB).
+- **Desktop (1440 × 900)**: Saved to [`/reports/app-shell-1440px.png`](file:///c:/Users/Atharva/OneDrive/Desktop/Nirbhar AI%20AI/reports/app-shell-1440px.png) (75.6 KB).
+- **Mobile (390 × 844)**: Saved to [`/reports/app-shell-390px.png`](file:///c:/Users/Atharva/OneDrive/Desktop/Nirbhar AI%20AI/reports/app-shell-390px.png) (38.0 KB).
 - **Sidebar Items Checked**: Exactly the 5 mandated items:
   1. `Dashboard`
   2. `New Task`

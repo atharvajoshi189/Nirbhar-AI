@@ -43,3 +43,4 @@ def get_supabase_user_client(access_token: str) -> Client:
     client = create_client(url, anon_key)
     client.postgrest.auth(access_token)
     return client
+

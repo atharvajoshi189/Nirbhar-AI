@@ -36,7 +36,7 @@ class ChainVerificationResult(BaseModel):
 
 class AuditChainService:
     def __init__(self, audit_secret: Optional[str] = None):
-        self.audit_secret = audit_secret or os.getenv("AUDIT_SECRET", "agenttrust_tamper_evident_audit_secret_2026")
+        self.audit_secret = audit_secret or os.getenv("AUDIT_SECRET", "nirbhar_tamper_evident_audit_secret_2026")
 
     def canonicalize_payload(self, payload: Dict[str, Any]) -> str:
         """Serializes payload into canonical JSON string (deterministic whitespace & key sorting)."""
@@ -145,3 +145,4 @@ class AuditChainService:
         )
 
 audit_service = AuditChainService()
+
