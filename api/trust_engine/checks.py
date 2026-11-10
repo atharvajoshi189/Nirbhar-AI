@@ -497,11 +497,24 @@ def check_approval_requirement(
     auto_approve_threshold: Decimal,
     single_tx_limit: Decimal,
     requires_explicit_consent: bool = False,
+    human_approval_granted: bool = False,
 ) -> CheckResult:
     """
     Check 7: approval_requirement
     Checks policy limits requiring human intervention.
+    If human approval was already granted and active, the requirement is satisfied.
     """
+    if human_approval_granted:
+        return CheckResult(
+            check_name=CheckType.APPROVAL_REQUIREMENT.value,
+            passed=True,
+            severity="SOFT",
+            impact=TrustDecisionEnum.APPROVED,
+            reason_codes=[],
+            message="Human user approval verified and active",
+            metadata={"human_approved": True, "amount": float(proposal_amount)},
+        )
+
     # 1. Single transaction limit
     if proposal_amount > single_tx_limit:
         return CheckResult(

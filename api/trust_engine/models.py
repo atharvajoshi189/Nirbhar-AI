@@ -79,6 +79,7 @@ class ProposalContext(BaseModel):
     quote_hmac_secret: Optional[str] = None
     quote_merchant_id: Optional[str] = None
     quote_payee_email: Optional[str] = None
+    human_approval_granted: bool = False
     idempotency_key: Optional[str] = None
     payload_hash: Optional[str] = None
     seen_idempotency_keys: List[str] = Field(default_factory=list)

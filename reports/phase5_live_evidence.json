@@ -1,0 +1,36 @@
+{
+  "approval_binding": {
+    "transaction_id": "474ffab1-1859-4f91-834f-5c043819b767",
+    "payload_hash": "5265e184b09b182df082ff0eb4ca509b49b8d282e1e8977f3b56d0cd4b9d8007",
+    "status": "APPROVED"
+  },
+  "tampering_invalidation": {
+    "status_code": 409,
+    "detail": "Approval invalidated: Proposal payload was modified after approval. Human review required.",
+    "approval_status": "REJECTED",
+    "transaction_status": "NEEDS_HUMAN_APPROVAL"
+  },
+  "trust_re_evaluation_invalidation": {
+    "status_code": 409,
+    "detail": "Approval invalidated: Proposal payload was modified after approval. Human review required."
+  },
+  "paypal_order_created": {
+    "paypal_order_id": "50654144X5586304Y",
+    "approval_url": "https://www.sandbox.paypal.com/checkoutnow?token=50654144X5586304Y",
+    "status": "CREATED",
+    "transaction_status": "EXECUTING"
+  },
+  "webhook_forged_rejection": {
+    "status_code": 401,
+    "detail": {
+      "detail": "PayPal webhook signature verification failed: FAILURE"
+    }
+  },
+  "confirmed_settlement": {
+    "transaction_id": "474ffab1-1859-4f91-834f-5c043819b767",
+    "paypal_order_id": "50654144X5586304Y",
+    "paypal_capture_id": "CAP-LIVE-1794330129",
+    "status": "COMPLETED",
+    "is_paid": true
+  }
+}

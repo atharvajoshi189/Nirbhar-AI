@@ -609,7 +609,7 @@ function TaskActivityInner() {
             {transactions.map((tx) => {
               const td = tx.trust_decisions && tx.trust_decisions[0];
               const rawRules = td?.rules_evaluated || [];
-              let checks = [];
+              let checks: any[] = [];
               let explanation =
                 (Array.isArray(rawRules) && rawRules.find((r: any) => r.check_name === "summary")?.explanation) ||
                 `Transaction of $${Number(tx.amount).toFixed(2)} evaluated by deterministic Trust Engine (${tx.status}).`;

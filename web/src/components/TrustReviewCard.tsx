@@ -13,7 +13,8 @@ import {
   ExternalLink
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ProofChip, ProofData } from "@/components/ProofChip";
+import { ProofChip } from "@/components/ProofChip";
+import { ProofData } from "@/components/ProofDrawer";
 
 export interface TrustCheckItem {
   check_name: string;

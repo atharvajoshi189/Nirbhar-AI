@@ -159,6 +159,7 @@ def evaluate_proposal(
             proposal_amount=context.amount,
             auto_approve_threshold=context.policy.auto_approve_threshold,
             single_tx_limit=context.policy.single_tx_limit,
+            human_approval_granted=context.human_approval_granted,
         )
         checks[CheckType.APPROVAL_REQUIREMENT.value] = res_approval
         if not res_approval.passed:

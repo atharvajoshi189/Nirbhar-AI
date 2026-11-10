@@ -10,6 +10,7 @@ from app.routers.agents import router as agents_router
 from app.routers.tasks import router as tasks_router
 from app.routers.transactions import router as transactions_router
 from app.routers.stats import router as stats_router
+from app.routers.webhooks import router as webhooks_router
 
 load_dotenv()
 
@@ -33,6 +34,7 @@ app.include_router(agents_router)
 app.include_router(tasks_router)
 app.include_router(transactions_router)
 app.include_router(stats_router)
+app.include_router(webhooks_router)
 
 @app.get("/")
 async def root():
