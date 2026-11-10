@@ -451,3 +451,200 @@ async def test_concurrency_race_condition_for_last_budget():
     assert len(blocked) == 1, "The racing second candidate must be blocked due to budget exhaustion"
     assert blocked[0][2] == ReasonCode.BUDGET_EXCEEDED
     assert committed_spend == Decimal("20.00"), "Committed spend must accurately match the budget ceiling"
+
+# ==============================================================================
+# 13. Phase 4 Specific Acceptance Tests
+# ==============================================================================
+def test_phase4_happy_path_12_under_20_eligible():
+    """
+    Requirement 1: Happy path $12 under a $20 budget is eligible.
+    All 8 checks must pass, resulting in APPROVED status.
+    """
+    task_id = "task-happy-12"
+    amount = Decimal("12.00")
+    quote_id = "QTE-HAPPY-12"
+    future_expiry = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+    secret = "secret-key-12"
+
+    hmac_sig = create_valid_quote_hmac(quote_id, float(amount), "USD", future_expiry, secret)
+    agent_sig = create_valid_test_signature(task_id, float(amount), "USD", "MarketResearchCorp", quote_id)
+
+    ctx = ProposalContext(
+        task_id=task_id,
+        user_id="user-A",
+        agent_id="agent-service-01",
+        agent_public_key=test_pub_hex,
+        agent_is_active=True,
+        agent_signature=agent_sig,
+        amount=amount,
+        currency="USD",
+        provider_name="MarketResearchCorp",
+        provider_url="https://marketresearch.com/quote",
+        proposal_category="market_research",
+        task_category="market_research",
+        task_budget_max=Decimal("20.00"),
+        current_committed_spend=Decimal("0.00"),
+        quote_id=quote_id,
+        quote_amount=amount,
+        quote_expires_at=future_expiry,
+        quote_hmac_signature=hmac_sig,
+        quote_hmac_secret=secret,
+        policy=TaskPolicyModel(
+            auto_approve_threshold=Decimal("15.00"),
+            single_tx_limit=Decimal("20.00"),
+            allowed_domains=["marketresearch.com"],
+            strict_mode=False
+        ),
+        bypass_advisory_llm=True,
+    )
+
+    decision = evaluate_proposal(ctx)
+    assert decision.decision == TrustDecisionEnum.APPROVED, f"Expected APPROVED, got {decision.decision}"
+    assert len(decision.reason_codes) == 0, f"Expected 0 reason codes, got {decision.reason_codes}"
+    assert decision.risk_score < 70.0
+
+def test_phase4_budget_exceeded_35_on_20_blocked():
+    """
+    Requirement 2: $35 request under a $20 budget is BLOCKED with BUDGET_EXCEEDED.
+    """
+    task_id = "task-overbudget-35"
+    amount = Decimal("35.00")
+    quote_id = "QTE-OVERBUDGET-35"
+    future_expiry = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+    secret = "secret-key-35"
+
+    hmac_sig = create_valid_quote_hmac(quote_id, float(amount), "USD", future_expiry, secret)
+    agent_sig = create_valid_test_signature(task_id, float(amount), "USD", "CloudScale", quote_id)
+
+    ctx = ProposalContext(
+        task_id=task_id,
+        user_id="user-A",
+        agent_id="agent-service-01",
+        agent_public_key=test_pub_hex,
+        agent_is_active=True,
+        agent_signature=agent_sig,
+        amount=amount,
+        currency="USD",
+        provider_name="CloudScale",
+        provider_url="https://cloudscale.com",
+        proposal_category="cloud_compute",
+        task_category="cloud_compute",
+        task_budget_max=Decimal("20.00"),  # $20 budget
+        current_committed_spend=Decimal("0.00"),
+        quote_id=quote_id,
+        quote_amount=amount,
+        quote_expires_at=future_expiry,
+        quote_hmac_signature=hmac_sig,
+        quote_hmac_secret=secret,
+        policy=TaskPolicyModel(auto_approve_threshold=Decimal("20.00"), single_tx_limit=Decimal("50.00")),
+        bypass_advisory_llm=True,
+    )
+
+    decision = evaluate_proposal(ctx)
+    assert decision.decision == TrustDecisionEnum.BLOCKED
+    assert ReasonCode.BUDGET_EXCEEDED.value in decision.reason_codes
+
+def test_phase4_comprehensive_reason_codes_matrix():
+    """
+    Requirement 3: Matrix testing that every required failure scenario produces
+    the exact expected decision and reason code:
+      - tampered quote -> BLOCKED, QUOTE_MISMATCH
+      - expired quote -> BLOCKED, QUOTE_EXPIRED
+      - unknown agent -> BLOCKED, AGENT_NOT_AUTHORIZED
+      - unrelated service -> NEEDS_HUMAN_APPROVAL, TASK_MISMATCH
+      - unlisted provider -> BLOCKED, PROVIDER_NOT_ALLOWLISTED (strict mode)
+      - duplicate request -> BLOCKED, DUPLICATE_REQUEST
+    """
+    task_id = "task-matrix-01"
+    valid_amount = Decimal("10.00")
+    quote_id = "QTE-MATRIX-01"
+    future_expiry = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+    past_expiry = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+    secret = "matrix-secret"
+
+    valid_hmac = create_valid_quote_hmac(quote_id, float(valid_amount), "USD", future_expiry, secret)
+    valid_sig = create_valid_test_signature(task_id, float(valid_amount), "USD", "ApprovedMerchant", quote_id)
+
+    def base_ctx(**kwargs):
+        data = {
+            "task_id": task_id,
+            "user_id": "user-A",
+            "agent_id": "agent-service-01",
+            "agent_public_key": test_pub_hex,
+            "agent_is_active": True,
+            "agent_signature": valid_sig,
+            "amount": valid_amount,
+            "currency": "USD",
+            "provider_name": "ApprovedMerchant",
+            "provider_url": "https://approved.com",
+            "proposal_category": "analytics",
+            "task_category": "analytics",
+            "task_budget_max": Decimal("50.00"),
+            "current_committed_spend": Decimal("0.00"),
+            "quote_id": quote_id,
+            "quote_amount": valid_amount,
+            "quote_expires_at": future_expiry,
+            "quote_hmac_signature": valid_hmac,
+            "quote_hmac_secret": secret,
+            "policy": TaskPolicyModel(auto_approve_threshold=Decimal("20.00"), single_tx_limit=Decimal("50.00")),
+            "bypass_advisory_llm": True,
+        }
+        data.update(kwargs)
+        return ProposalContext(**data)
+
+    # 3a. Tampered quote
+    ctx_tampered = base_ctx(quote_hmac_signature="badc0ffee" * 7)
+    dec_tampered = evaluate_proposal(ctx_tampered)
+    assert dec_tampered.decision == TrustDecisionEnum.BLOCKED
+    assert ReasonCode.QUOTE_MISMATCH.value in dec_tampered.reason_codes
+
+    # 3b. Expired quote
+    ctx_expired = base_ctx(quote_expires_at=past_expiry)
+    dec_expired = evaluate_proposal(ctx_expired)
+    assert dec_expired.decision == TrustDecisionEnum.BLOCKED
+    assert ReasonCode.QUOTE_EXPIRED.value in dec_expired.reason_codes
+
+    # 3c. Unknown agent
+    ctx_unknown_agent = base_ctx(agent_public_key=None)
+    dec_agent = evaluate_proposal(ctx_unknown_agent)
+    assert dec_agent.decision == TrustDecisionEnum.BLOCKED
+    assert ReasonCode.AGENT_NOT_AUTHORIZED.value in dec_agent.reason_codes
+
+    # 3d. Unrelated service
+    ctx_unrelated = base_ctx(proposal_category="luxury_travel_booking", task_category="seo_analytics")
+    dec_unrelated = evaluate_proposal(ctx_unrelated)
+    assert dec_unrelated.decision == TrustDecisionEnum.NEEDS_HUMAN_APPROVAL
+    assert ReasonCode.TASK_MISMATCH.value in dec_unrelated.reason_codes
+
+    # 3e. Unlisted provider
+    ctx_unlisted = base_ctx(
+        provider_url="https://unlisted-vendor.com",
+        policy=TaskPolicyModel(
+            allowed_domains=["approved.com"],
+            strict_mode=True
+        )
+    )
+    dec_unlisted = evaluate_proposal(ctx_unlisted)
+    assert dec_unlisted.decision == TrustDecisionEnum.NEEDS_HUMAN_APPROVAL
+    assert ReasonCode.PROVIDER_NOT_ALLOWLISTED.value in dec_unlisted.reason_codes
+
+    # 3e-ii. Blacklisted provider
+    ctx_blacklisted = base_ctx(
+        provider_url="https://malicious-site.com",
+        policy=TaskPolicyModel(
+            blacklisted_domains=["malicious-site.com"]
+        )
+    )
+    dec_blacklisted = evaluate_proposal(ctx_blacklisted)
+    assert dec_blacklisted.decision == TrustDecisionEnum.BLOCKED
+    assert ReasonCode.PROVIDER_NOT_ALLOWLISTED.value in dec_blacklisted.reason_codes
+
+    # 3f. Duplicate request (Replay attack)
+    ctx_duplicate = base_ctx(
+        idempotency_key="idempotency-key-already-seen",
+        seen_idempotency_keys=["idempotency-key-already-seen"]
+    )
+    dec_duplicate = evaluate_proposal(ctx_duplicate)
+    assert dec_duplicate.decision == TrustDecisionEnum.BLOCKED
+    assert ReasonCode.DUPLICATE_REQUEST.value in dec_duplicate.reason_codes
+

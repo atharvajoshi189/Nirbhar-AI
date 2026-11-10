@@ -48,6 +48,11 @@ Thumbs.db
 *.swp
 *.swo
 
+# Coverage and test caches
+.coverage
+htmlcov/
+.pytest_cache/
+
 # Local binaries and tool downloads
 tools/
 *.rdb

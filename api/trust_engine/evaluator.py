@@ -287,7 +287,9 @@ def evaluate_proposal(
 
     except Exception as e:
         # Rule 4: Fail-closed on any unexpected engine exception
-        fail_closed_hash = hashlib.sha256(f"FAIL_CLOSED:{context.task_id}:{now_iso}:{str(e)}".encode("utf-8")).hexdigest()
+        task_ref = getattr(context, "task_id", "unknown")
+        policy_ver = getattr(getattr(context, "policy", None), "policy_version", "v1.0.0")
+        fail_closed_hash = hashlib.sha256(f"FAIL_CLOSED:{task_ref}:{now_iso}:{str(e)}".encode("utf-8")).hexdigest()
         fallback_checks: Dict[str, CheckResult] = {}
         for ct in CheckType:
             fallback_checks[ct.value] = CheckResult(
@@ -307,7 +309,7 @@ def evaluate_proposal(
             checks=fallback_checks,
             checks_list=list(fallback_checks.values()),
             decision_hash=fail_closed_hash,
-            policy_version=context.policy.policy_version,
+            policy_version=policy_ver,
             evaluated_at=now_iso,
             eligible_for_human_review=False,
             proof={
