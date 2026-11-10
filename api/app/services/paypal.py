@@ -181,6 +181,18 @@ class PayPalService:
                 raise RuntimeError(f"Failed to fetch PayPal order ({resp.status_code}): {resp.text}")
             return resp.json()
 
+    async def get_capture(self, capture_id: str) -> Dict[str, Any]:
+        """Retrieves live PayPal Capture details from /v2/payments/captures/{id}."""
+        token = await self.get_access_token()
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{self.api_base}/v2/payments/captures/{capture_id}",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            if resp.status_code != 200:
+                raise RuntimeError(f"Failed to fetch PayPal capture ({resp.status_code}): {resp.text}")
+            return resp.json()
+
     async def verify_webhook_signature(
         self,
         headers: Dict[str, str],
@@ -233,3 +245,4 @@ class PayPalService:
             return is_valid, v_status, data
 
 paypal_service = PayPalService()
+

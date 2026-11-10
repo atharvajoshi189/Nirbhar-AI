@@ -37,3 +37,4 @@ def compute_transaction_payload_hash(tx: Dict[str, Any], quote: Dict[str, Any]) 
 
     canonical_json = json.dumps(canonical_data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
+
