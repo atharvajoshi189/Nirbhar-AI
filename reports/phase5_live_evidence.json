@@ -1,7 +1,7 @@
 {
   "approval_binding": {
-    "transaction_id": "474ffab1-1859-4f91-834f-5c043819b767",
-    "payload_hash": "5265e184b09b182df082ff0eb4ca509b49b8d282e1e8977f3b56d0cd4b9d8007",
+    "transaction_id": "0f1802ac-b04f-48d4-8bd5-327086a60268",
+    "payload_hash": "c59d917f44008a77447e114567dabd17e8de8e8e2653effb7a6de0054082ccfa",
     "status": "APPROVED"
   },
   "tampering_invalidation": {
@@ -15,8 +15,8 @@
     "detail": "Approval invalidated: Proposal payload was modified after approval. Human review required."
   },
   "paypal_order_created": {
-    "paypal_order_id": "50654144X5586304Y",
-    "approval_url": "https://www.sandbox.paypal.com/checkoutnow?token=50654144X5586304Y",
+    "paypal_order_id": "76L21168VB355184J",
+    "approval_url": "https://www.sandbox.paypal.com/checkoutnow?token=76L21168VB355184J",
     "status": "CREATED",
     "transaction_status": "EXECUTING"
   },
@@ -27,9 +27,9 @@
     }
   },
   "confirmed_settlement": {
-    "transaction_id": "474ffab1-1859-4f91-834f-5c043819b767",
-    "paypal_order_id": "50654144X5586304Y",
-    "paypal_capture_id": "CAP-LIVE-1794330129",
+    "transaction_id": "0f1802ac-b04f-48d4-8bd5-327086a60268",
+    "paypal_order_id": "76L21168VB355184J",
+    "paypal_capture_id": "CAP-LIVE-1794482965",
     "status": "COMPLETED",
     "is_paid": true
   }
