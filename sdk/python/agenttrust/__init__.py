@@ -2,7 +2,7 @@
 from typing import Dict, Any, Optional
 import httpx
 
-class Nirbhar AIClient:
+class NirbharAIClient:
     def __init__(self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key

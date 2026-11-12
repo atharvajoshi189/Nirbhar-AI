@@ -14,24 +14,34 @@ class RedisManager:
         self._fallback_cache: dict = {}
         self._fallback_ttls: dict = {}
         self._connected: bool = False
+        self._last_failed_attempt: float = 0.0
 
     async def get_client(self) -> Optional[aioredis.Redis]:
-        if self._redis is None:
-            try:
-                self._redis = aioredis.from_url(
-                    settings.REDIS_URL,
-                    encoding="utf-8",
-                    decode_responses=True,
-                    socket_connect_timeout=2.0
-                )
-                await self._redis.ping()
-                self._connected = True
-                logger.info("Connected to Redis at %s", settings.REDIS_URL)
-            except Exception as e:
-                logger.warning("Redis connection failed (%s); using in-memory store", e)
-                self._redis = None
-                self._connected = False
-        return self._redis
+        if self._connected and self._redis:
+            return self._redis
+
+        # If Redis was unreachable recently, use in-memory fallback without blocking
+        now = time.time()
+        if now - self._last_failed_attempt < 30.0:
+            return None
+
+        try:
+            self._redis = aioredis.from_url(
+                settings.REDIS_URL,
+                encoding="utf-8",
+                decode_responses=True,
+                socket_connect_timeout=0.5
+            )
+            await self._redis.ping()
+            self._connected = True
+            logger.info("Connected to Redis at %s", settings.REDIS_URL)
+            return self._redis
+        except Exception as e:
+            logger.warning("Redis connection failed (%s); using in-memory store", e)
+            self._redis = None
+            self._connected = False
+            self._last_failed_attempt = now
+            return None
 
     async def get(self, key: str) -> Optional[str]:
         client = await self.get_client()

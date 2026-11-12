@@ -34,15 +34,15 @@ app = FastAPI(
     description="Nirbhar AI Core API: Trust Engine, Spend Enforcement & Verification Layer"
 )
 
-# 3. Add Request Context Middleware (Request IDs & Structured Access Telemetry)
-app.add_middleware(RequestContextMiddleware)
-
-# 4. Add Rate Limiting & Idempotency Cache Middleware (Redis backed)
+# 3. Add Rate Limiting & Idempotency Cache Middleware (Redis backed)
 app.add_middleware(
     RateLimitAndIdempotencyMiddleware,
     requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
     idempotency_ttl=settings.IDEMPOTENCY_TTL_SECONDS
 )
+
+# 4. Add Request Context Middleware (Request IDs & Structured Access Telemetry)
+app.add_middleware(RequestContextMiddleware)
 
 # 5. CORS Middleware
 app.add_middleware(

@@ -1,15 +1,25 @@
+from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
-from decimal import Decimal
-from pydantic import BaseModel, Field
 
-class VerificationResult(BaseModel):
-    decision: str = Field(..., description="Trust decision: APPROVED, NEEDS_HUMAN_APPROVAL, or BLOCKED")
-    risk_score: float = Field(..., description="Calculated composite risk score (0.0 to 1.0)")
-    reason_codes: List[str] = Field(default_factory=list, description="Reason codes raised during evaluation")
-    explanation: str = Field(..., description="Human-readable decision explanation")
-    rules_evaluated: List[Dict[str, Any]] = Field(default_factory=list, description="Detailed checks breakdown")
-    proof_chip: Dict[str, Any] = Field(default_factory=dict, description="Verifiable proof metadata and raw telemetry")
-    evaluated_at: str = Field(..., description="Evaluation timestamp in ISO 8601")
+@dataclass
+class VerificationResult:
+    """Deterministic decision and proof resulting from Nirbhar AI Trust Engine evaluation."""
+    decision: str = ""
+    risk_score: float = 0.0
+    explanation: str = ""
+    evaluated_at: str = ""
+    reason_codes: List[str] = field(default_factory=list)
+    rules_evaluated: List[Dict[str, Any]] = field(default_factory=list)
+    proof_chip: Dict[str, Any] = field(default_factory=dict)
+
+    def __init__(self, **kwargs):
+        self.decision = kwargs.get("decision", "")
+        self.risk_score = float(kwargs.get("risk_score", 0.0))
+        self.explanation = kwargs.get("explanation", "")
+        self.evaluated_at = kwargs.get("evaluated_at", "")
+        self.reason_codes = list(kwargs.get("reason_codes", []))
+        self.rules_evaluated = list(kwargs.get("rules_evaluated", []))
+        self.proof_chip = dict(kwargs.get("proof_chip", {}))
 
     @property
     def is_approved(self) -> bool:

@@ -30,7 +30,7 @@ jobs:
       - name: Lint with Flake8
         run: |
           # Stop build if there are Python syntax errors or undefined names
-          flake8 api/ sdk/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 api/ sdk/ --exclude=.venv,venv,build,dist,__pycache__ --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run Test Suite with Pytest
         env:
