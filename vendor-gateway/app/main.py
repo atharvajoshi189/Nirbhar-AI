@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 import hmac
 import hashlib
@@ -12,6 +13,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+GATEWAY_START_TIME = time.time()
 QUOTE_HMAC_SECRET = os.getenv("QUOTE_HMAC_SECRET", "nirbhar_sandbox_quote_hmac_secret_2026_x89a")
 
 app = FastAPI(
@@ -153,10 +155,16 @@ async def root():
 
 @app.get("/health")
 async def health():
+    """Health and uptime check endpoint for Vendor Gateway (Phase 8 Item 4)."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    uptime_sec = round(time.time() - GATEWAY_START_TIME, 2)
     return {
-        "status": "healthy",
+        "status": "operational",
         "service": "vendor-gateway",
-        "merchants": [m["name"] for m in MERCHANTS.values()]
+        "uptime_seconds": uptime_sec,
+        "timestamp": now_iso,
+        "merchants_count": len(MERCHANTS),
+        "merchants": list(MERCHANTS.keys())
     }
 
 @app.get("/merchants")

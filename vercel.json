@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "cd web && npx next build --webpack",
+  "outputDirectory": "web/.next",
+  "installCommand": "cd web && npm install",
+  "cleanUrls": true,
+  "regions": ["iad1"]
+}
+

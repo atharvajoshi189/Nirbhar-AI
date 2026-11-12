@@ -1,55 +1,81 @@
 version: "3.8"
 
 services:
+  # 1. In-Memory Redis Cache & Rate Limiter
   redis:
     image: redis:7-alpine
-    container_name: agenttrust-redis
+    container_name: nirbhar-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
 
+  # 2. Core API & Trust Engine
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: agenttrust-api
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: nirbhar-api
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
+      - ENVIRONMENT=production
       - REDIS_URL=redis://redis:6379/0
       - VENDOR_GATEWAY_URL=http://vendor-gateway:8001
+      - QUOTE_HMAC_SECRET=${QUOTE_HMAC_SECRET:-nirbhar_sandbox_quote_hmac_secret_2026_x89a}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - PAYPAL_ENVIRONMENT=${PAYPAL_ENVIRONMENT:-sandbox}
+      - PAYPAL_WEBHOOK_ID=${PAYPAL_WEBHOOK_ID}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
+  # 3. Vendor Gateway Bridge
   vendor-gateway:
     build:
       context: ./vendor-gateway
       dockerfile: Dockerfile
-    container_name: agenttrust-vendor-gateway
+    container_name: nirbhar-vendor-gateway
     ports:
       - "8001:8001"
-    env_file:
-      - .env
+    environment:
+      - ENVIRONMENT=production
+      - QUOTE_HMAC_SECRET=${QUOTE_HMAC_SECRET:-nirbhar_sandbox_quote_hmac_secret_2026_x89a}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
+  # 4. Web Frontend (Next.js)
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
-    container_name: agenttrust-web
+    container_name: nirbhar-web
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api:8000
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     depends_on:
       - api
     restart: unless-stopped
-
-volumes:
-  redis_data:
-

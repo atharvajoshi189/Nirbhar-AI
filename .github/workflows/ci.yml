@@ -1,0 +1,74 @@
+name: Nirbhar AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-ci:
+    name: Backend CI (Lint, Type-Check, Pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt
+          pip install -e ./sdk
+          pip install flake8 mypy
+
+      - name: Lint with Flake8
+        run: |
+          # Stop build if there are Python syntax errors or undefined names
+          flake8 api/ sdk/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run Test Suite with Pytest
+        env:
+          ENVIRONMENT: test
+          QUOTE_HMAC_SECRET: ${{ secrets.QUOTE_HMAC_SECRET || 'test_quote_secret_2026' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          pytest tests/test_phase8_sdk_and_resilience.py tests/test_red_team_suite.py tests/test_trust_engine.py -v
+
+  web-ci:
+    name: Web Frontend CI (Type-Check & Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Web Dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Type-Check TypeScript
+        working-directory: ./web
+        run: npx tsc --noEmit
+
+      - name: Build Next.js Web App
+        working-directory: ./web
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npx next build --webpack
+

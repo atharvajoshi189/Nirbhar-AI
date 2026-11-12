@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+*.egg-info/
 .pnp
 .pnp.js
 __pycache__/

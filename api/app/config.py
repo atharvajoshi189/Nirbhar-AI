@@ -45,5 +45,10 @@ class Settings(BaseSettings):
     VENDOR_GATEWAY_URL: str = os.getenv("VENDOR_GATEWAY_URL", "http://localhost:8001")
     QUOTE_HMAC_SECRET: str = os.getenv("QUOTE_HMAC_SECRET", "super-secret-hmac-key-nirbhar-2026")
 
-settings = Settings()
+    # Observability & Production Resilience (Phase 8)
+    SENTRY_DSN: Optional[str] = os.getenv("SENTRY_DSN")
+    RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "1200"))
+    IDEMPOTENCY_TTL_SECONDS: int = int(os.getenv("IDEMPOTENCY_TTL_SECONDS", "86400"))
+    ENABLE_STRUCTURED_LOGGING: bool = os.getenv("ENABLE_STRUCTURED_LOGGING", "true").lower() == "true"
 
+settings = Settings()

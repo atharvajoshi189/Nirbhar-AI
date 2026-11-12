@@ -5,9 +5,12 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import httpx
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.core.redis_client import redis_manager
+
+SERVER_START_TIME = time.time()
 
 router = APIRouter(prefix="/health", tags=["Health"])
 
@@ -21,6 +24,7 @@ class ServiceHealth(BaseModel):
 class SystemHealthResponse(BaseModel):
     status: str  # "operational" | "degraded" | "unhealthy"
     timestamp: str
+    uptime_seconds: float = Field(..., description="Server uptime in seconds")
     environment: str
     services: Dict[str, ServiceHealth]
     proof: Dict[str, Any]
@@ -173,18 +177,52 @@ async def check_paypal() -> ServiceHealth:
             metadata={"error": str(e)}
         )
 
+async def check_redis() -> ServiceHealth:
+    start = time.perf_counter()
+    try:
+        is_ok = await redis_manager.is_healthy()
+        latency = round((time.perf_counter() - start) * 1000, 2)
+        if is_ok:
+            return ServiceHealth(
+                name="Redis",
+                status="operational",
+                latency_ms=latency,
+                message="Connected to Redis cache and rate limiter",
+                metadata={"url": settings.REDIS_URL}
+            )
+        else:
+            return ServiceHealth(
+                name="Redis",
+                status="degraded",
+                latency_ms=latency,
+                message="Using in-memory fallback rate-limiter and cache",
+                metadata={"mode": "in-memory-fallback"}
+            )
+    except Exception as e:
+        latency = round((time.perf_counter() - start) * 1000, 2)
+        return ServiceHealth(
+            name="Redis",
+            status="degraded",
+            latency_ms=latency,
+            message=f"Redis check fallback: {str(e)}",
+            metadata={"error": str(e)}
+        )
+
 @router.get("", response_model=SystemHealthResponse)
 async def get_system_health():
     now_iso = datetime.now(timezone.utc).isoformat()
+    uptime_sec = round(time.time() - SERVER_START_TIME, 2)
     
     gemini_health = await check_gemini()
     supabase_health = await check_supabase()
     paypal_health = await check_paypal()
+    redis_health = await check_redis()
     
     services = {
         "gemini": gemini_health,
         "supabase": supabase_health,
         "paypal": paypal_health,
+        "redis": redis_health,
     }
     
     statuses = [s.status for s in services.values()]
@@ -201,12 +239,14 @@ async def get_system_health():
     return SystemHealthResponse(
         status=overall_status,
         timestamp=now_iso,
+        uptime_seconds=uptime_sec,
         environment=settings.ENVIRONMENT,
         services=services,
         proof={
             "sha256": proof_hash,
             "verified_at": now_iso,
-            "engine": "Nirbhar AI-HealthEngine-v1"
+            "uptime_seconds": uptime_sec,
+            "engine": "Nirbhar AI-HealthEngine-v2"
         }
     )
 
@@ -219,4 +259,3 @@ async def kill_gemini_key():
 async def restore_gemini_key():
     settings.restore_gemini_key()
     return {"status": "gemini_key_restored", "active_key": settings.active_gemini_key[:12] + "..." if settings.active_gemini_key else None}
-

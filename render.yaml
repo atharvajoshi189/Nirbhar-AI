@@ -1,0 +1,80 @@
+# Render Deployment Blueprint for Nirbhar AI
+# Rule 4: Configured using environment variables only
+
+services:
+  # 1. Nirbhar AI Core API & Trust Engine
+  - type: web
+    name: nirbhar-core-api
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: api
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && pip install -e ../sdk"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_ENVIRONMENT
+        value: sandbox
+      - key: PAYPAL_API_BASE
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: QUOTE_HMAC_SECRET
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nirbhar-redis
+          property: connectionString
+      - key: VENDOR_GATEWAY_URL
+        fromService:
+          type: web
+          name: nirbhar-vendor-gateway
+          property: host
+
+  # 2. Nirbhar AI Vendor Gateway Bridge
+  - type: web
+    name: nirbhar-vendor-gateway
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: vendor-gateway
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: QUOTE_HMAC_SECRET
+        sync: false
+      - key: PAYPAL_ENVIRONMENT
+        value: sandbox
+
+  # 3. Redis Cache & Rate Limiting Instance
+  - type: redis
+    name: nirbhar-redis
+    region: oregon
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
