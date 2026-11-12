@@ -285,6 +285,7 @@ export default function RedTeamPage() {
             return (
               <div
                 key={scenario.id}
+                data-scenario-id={scenario.id}
                 className={cn(
                   "bg-white border rounded-lg p-5 shadow-2xs flex flex-col justify-between transition-all",
                   result
@@ -398,6 +399,7 @@ export default function RedTeamPage() {
                   </span>
                   <button
                     type="button"
+                    data-run-button={scenario.id}
                     onClick={() => runScenario(scenario.id)}
                     disabled={isRunning || isRunningAll}
                     className={cn(

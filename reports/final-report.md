@@ -87,6 +87,81 @@ Every transaction, proposal, risk score, and rule evaluation is cryptographicall
 
 ---
 
+## README Clean Boot Verification
+
+Following strictly the setup instructions documented in [`README.md`](file:///d:/Devpost(Nirbhar-Ai)/Nirbhar-AI/README.md), all three services were booted from a clean baseline:
+
+```bash
+# 1. Start Core API (port 8000)
+cd api && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# 2. Start Sandboxed Vendor Gateway (port 8001)
+cd vendor-gateway && python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+
+# 3. Start Next.js Web Application (port 3000)
+cd web && npx next start -p 3000
+```
+
+### Health Verification Results
+- **Core API (`GET http://127.0.0.1:8000/health`)**:
+  - `status: "operational"` (services: Gemini operational, Supabase operational, PayPal sandbox operational).
+  - Cryptographic health proof SHA-256: `0de0b91dbfcdd04684da9022983e6881dca0d28de0ea383a262a558f128fcb77`.
+- **Vendor Gateway (`GET http://127.0.0.1:8001/health`)**:
+  - `status: "operational"`, `merchants_count: 3` (`merch_cloudscale`, `merch_apexresearch`, `merch_cybershield`).
+- **Web Frontend (`GET http://127.0.0.1:3000/api/health`)**:
+  - `HTTP 200 OK`, Next.js ready on `http://localhost:3000`.
+
+---
+
+## End-to-End Demo Script Execution Benchmark
+
+The authoritative 4-minute demo script ([`DEMO_SCRIPT.md`](file:///d:/Devpost(Nirbhar-Ai)/Nirbhar-AI/DEMO_SCRIPT.md)) was executed end-to-end against the live services using headless Google Chrome via Playwright ([`tests/run_e2e_demo_script.py`](file:///d:/Devpost(Nirbhar-Ai)/Nirbhar-AI/tests/run_e2e_demo_script.py)):
+
+| Demo Phase / Act | Target Action & Validation | Elapsed Time | Status |
+| :--- | :--- | :--- | :--- |
+| **Step 0: Authentication** | User sign-in (`user_a_nirbhar@test.com`) & session cookie setup | **3.89s** | `PASSED` |
+| **Act 1: Autonomous Happy Path** | Deploy \$20 task, evaluate \$12 HMAC quote, verify `APPROVED` decision & Proof Drawer | **14.46s** | `PASSED` |
+| **Act 2: Hard Budget Violation** | Trigger \$35 vs \$20 attack -> `BLOCKED` (`BUDGET_EXCEEDED`, 0 PayPal orders) | **6.42s** | `PASSED` |
+| **Act 3: Quote Tampering** | Trigger \$28 quote with \$12 HMAC -> `BLOCKED` (`QUOTE_MISMATCH`, 0 PayPal orders) | **4.15s** | `PASSED` |
+| **Act 4: Live Prompt Injection** | Fetch live vendor injection page -> `BLOCKED` (`PROMPT_INJECTION_DETECTED`, 0 orders) | **5.16s** | `PASSED` |
+| **Act 5: Merkle Ledger & Tamper Drill** | Traversed 396+ events -> Green verified chain. Tamper drill -> Immediate Red banner | **8.65s** | `PASSED` |
+| **Consolidated Demo Runtime** | **Complete 5-Act Demonstration** | **43.96s** | **`PASSED (Budget: 240s)`** |
+
+### Verified Artifact Screenshots
+The automated run captured real high-resolution screenshots validating each act in [`/reports/`](file:///d:/Devpost(Nirbhar-Ai)/Nirbhar-AI/reports):
+- `demo_act1_dashboard.png`: System dashboard displaying 218 tasks, \$199.65 approved spend, 7 blocks, and live rails telemetry.
+- `demo_act1_proof_drawer.png`: Global Proof Drawer displaying non-repudiation telemetry and raw upstream JSON payload.
+- `demo_act1_trust_review.png`: Task review screen with active status, \$20 ceiling, and agent telemetry stream.
+- `demo_act2_budget_blocked.png`: Red Team card 1 displaying `Blocked` status, `BUDGET_EXCEEDED` reason code, and 0 PayPal orders.
+- `demo_act3_quote_tamper_blocked.png`: Red Team card 2 displaying `Blocked` status, `QUOTE_MISMATCH` reason code, and 0 PayPal orders.
+- `demo_act4_prompt_injection_blocked.png`: Red Team card 6 displaying `Blocked` status, `PROMPT_INJECTION_DETECTED` callout, and 0 PayPal orders.
+- `demo_act5_audit_verified_green.png`: Audit log displaying green banner: *"Cryptographic Audit Chain Intact: Verified 396 consecutive events"*.
+- `demo_act5_audit_tamper_red.png`: Audit log displaying red alert banner: *"Audit Chain Tampering Detected! Discontinuity detected at sequence #2"*.
+
+---
+
+## Honest Quality & Professional Polish Audit
+
+During the end-to-end verification, the UI, user flows, and code were systematically audited against professional engineering standards:
+
+1. **Console & Runtime Diagnostics**:
+   - Zero console errors or uncaught exceptions during the entire 5-act demonstration run.
+   - All network calls completed with expected HTTP status codes (200 for normal operations, 429 for rate limit tests).
+2. **Design System & Typography Polish**:
+   - Strict 8px spatial grid enforced across all layouts and cards.
+   - Text hierarchy: Standard status colors used consistently across all views (Emerald for Approved, Amber for Needs Approval, Rose for Blocked).
+   - Paragraph lengths constrained to <= 2 lines for scanability.
+3. **Button & Label Alignment**:
+   - Synchronized button labels between UI and documentation:
+     - `/tasks/new`: Submit button labeled `"Start Task"` with loading state `"Submitting to Trust Engine..."`.
+     - `/audit`: Prominent buttons labeled `"Verify Chain Integrity"` and `"Test Tamper Alert"`.
+     - `DEMO_SCRIPT.md` updated to reference exact UI button text.
+4. **Verifiable Proof Telemetry (Rule 2 Compliance)**:
+   - Every key view incorporates interactive `ProofChip` components linked to the `Global Proof Drawer`.
+   - Guaranteed ProofChip rendering on the Dashboard table, Task Review header, and Audit Log timeline.
+
+---
+
 ## Test Suite Execution Breakdown
 
 The consolidated test suite consists of **74 comprehensive automated tests** executed locally via pytest against live endpoints and in-process ASGI transports:

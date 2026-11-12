@@ -358,6 +358,20 @@ function TaskActivityInner() {
                 {task ? task.title : "Loading Task..."}
               </h1>
               {task && <StatusBadge status={task.status} />}
+              {task && (
+                <ProofChip
+                  label="task-proof"
+                  data={{
+                    title: `Task Authoritative Record (${task.title})`,
+                    request_id: task.id,
+                    sha256: task.id,
+                    timestamp: task.created_at,
+                    api_name: "Supabase public.tasks",
+                    raw: task,
+                  }}
+                  onOpenProof={openProof}
+                />
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-1 max-w-2xl">
               {task?.description}

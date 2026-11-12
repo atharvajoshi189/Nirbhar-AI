@@ -28,7 +28,7 @@
    - **Task Title**: `Procure Dedicated CI Worker on CloudScale`
    - **Max Budget**: `$20.00`
    - **Category**: `Cloud Infrastructure`
-5. Click **"Launch Autonomous Task"**.
+5. Click **"Start Task"**.
 6. Navigate to the task's **Trust Review** screen (`/tasks/[id]`). Show the agent's research, the HMAC-signed quote from CloudScale ($12.00), and the Trust Decision: **`APPROVED`** (Emerald badge).
 7. Show that a real **PayPal Sandbox Order v2** was created.
 8. Click the **Proof Chip** (`sha:...` or `12ms`) next to the decision.
@@ -120,10 +120,10 @@
 #### What to Do On Screen:
 1. Click **"Audit Log"** in the left navigation sidebar (`/audit`).
 2. Show the vertical timeline: every task creation, quote retrieval, approval, blocked attack, and PayPal order is recorded chronologically.
-3. Click the prominent **"Verify Integrity"** button at the top.
+3. Click the prominent **"Verify Chain Integrity"** button at the top.
 4. Watch the progress animation: the system calls `/audit/verify` and computes the SHA-256 Merkle chain from Genesis to Head.
 5. The banner turns **Bright Green**: *"Audit Chain Verified: 100% Cryptographic Integrity (Chain Length: 48+ Events)"*.
-6. Point to the **"Tamper Verification Drill"** button and click it:
+6. Point to the **"Test Tamper Alert"** button and click it:
    - Simulates modifying 1 byte in a historical record in-memory.
    - The banner instantly flashes **Red**: *"CRITICAL: Audit Chain Compromised — Hash Discontinuity Detected"*.
 7. Conclude the demo cleanly.
@@ -133,9 +133,9 @@
 > 
 > Here in the Audit Log, every single event is linked into a SHA-256 Merkle audit chain, identical to a cryptographic blockchain ledger. 
 > 
-> When we click 'Verify Integrity', the backend traverses every event in sequence, validating that every previous hash matches. We get a clean green bill of health with our exact chain length.
+> When we click 'Verify Chain Integrity', the backend traverses every event in sequence, validating that every previous hash matches. We get a clean green bill of health with our exact chain length.
 > 
-> To prove this isn't just a static badge, let's click 'Simulate Tamper Drill'. If an attacker or rogue admin modifies even one byte of an old record, the mathematical hash breaks, and the entire audit ledger flashes red with a hash discontinuity alert.
+> To prove this isn't just a static badge, let's click 'Test Tamper Alert'. If an attacker or rogue admin modifies even one byte of an old record, the mathematical hash breaks, and the entire audit ledger flashes red with a hash discontinuity alert.
 > 
 > That's Nirbhar AI: deterministic policies, cryptographic quotes, zero client trust, and immutable proof for the autonomous agent economy. Thank you!"
 
@@ -150,4 +150,4 @@
 | **1:00 - 1:55** | Red Team (`/red-team`) | Click "Run Attack" on Budget Violation ($35 vs $20) | `BLOCKED` with `BUDGET_EXCEEDED` |
 | **1:55 - 2:55** | Red Team (`/red-team`) | Click "Run Attack" on Quote Tampering | `BLOCKED` with `QUOTE_TAMPERED` |
 | **2:55 - 3:30** | Red Team (`/red-team`) | Click "Run Attack" on Prompt Injection | `BLOCKED` with `PROMPT_INJECTION_DETECTED` |
-| **3:30 - 4:00** | Audit Log (`/audit`) | Click "Verify Integrity", then "Tamper Drill" | Green verified chain -> Red tamper detection |
+| **3:30 - 4:00** | Audit Log (`/audit`) | Click "Verify Chain Integrity", then "Test Tamper Alert" | Green verified chain -> Red tamper detection |
