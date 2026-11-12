@@ -35,10 +35,11 @@ jobs:
       - name: Run Test Suite with Pytest
         env:
           ENVIRONMENT: test
-          QUOTE_HMAC_SECRET: ${{ secrets.QUOTE_HMAC_SECRET || 'test_quote_secret_2026' }}
+          QUOTE_HMAC_SECRET: ${{ secrets.QUOTE_HMAC_SECRET || 'nirbhar_sandbox_quote_hmac_secret_2026_x89a' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           pytest tests/test_phase8_sdk_and_resilience.py tests/test_red_team_suite.py tests/test_trust_engine.py -v
 

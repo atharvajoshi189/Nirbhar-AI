@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: Optional[str] = os.getenv("TAVILY_API_KEY")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     VENDOR_GATEWAY_URL: str = os.getenv("VENDOR_GATEWAY_URL", "http://localhost:8001")
-    QUOTE_HMAC_SECRET: str = os.getenv("QUOTE_HMAC_SECRET", "super-secret-hmac-key-nirbhar-2026")
+    QUOTE_HMAC_SECRET: str = os.getenv("QUOTE_HMAC_SECRET", "nirbhar_sandbox_quote_hmac_secret_2026_x89a")
 
     # Observability & Production Resilience (Phase 8)
     SENTRY_DSN: Optional[str] = os.getenv("SENTRY_DSN")
