@@ -223,3 +223,4 @@ tests\test_phase6_audit_and_ui.py ......                                 [100%]
 3. **Rule 4 (Security & Fail Closed)**: All 6 attack vectors fail closed into `BLOCKED`. Absolutely no PayPal orders created.
 4. **Rule 5 (Design System)**: 5 left nav items, Inter font, 8px grid, status badges in rose for BLOCKED, all paragraphs <= 2 lines.
 5. **Rule 6 (Report)**: Full verification report with real proof hashes, real database sequences, and live screenshots.
+
