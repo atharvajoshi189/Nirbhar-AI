@@ -1,13 +1,14 @@
 import math
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
 
 from app.db.supabase import get_supabase_admin_client
 from app.security.auth import get_current_user
 from app.services.audit import audit_service
 from app.jobs import enqueue_coordinator_agent
+from app.services.coordinator import coordinator_service
 from app.services.research import research_service
 from app.services.service_agent import service_agent
 
@@ -28,12 +29,13 @@ class TaskCreateRequest(BaseModel):
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_task(
     payload: TaskCreateRequest,
+    background_tasks: BackgroundTasks,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Creates a new task and versioned task_policy in Supabase,
     writes an append-only cryptographic audit event,
-    and enqueues the Coordinator Agent background job via Redis + ARQ.
+    and enqueues the Coordinator Agent background job via Redis + ARQ (or FastAPI background tasks).
     """
     user_id = current_user["id"]
     supabase = get_supabase_admin_client()
@@ -100,13 +102,16 @@ async def create_task(
         }
     )
 
-    # 4. Enqueue Coordinator agent background job via Redis + ARQ
+    # 4. Enqueue Coordinator agent background job via Redis + ARQ (with FastAPI background_tasks fallback)
     job_id = None
     try:
         job_id = await enqueue_coordinator_agent(task_id=task_id, user_id=user_id)
     except Exception as e:
-        # Per fail-closed rule: log error, but return created task with pending status
-        print(f"[Warning] Failed to enqueue background job: {e}")
+        print(f"[Warning] Failed to enqueue background job to Redis: {e}")
+
+    # Fallback to FastAPI background task if Redis queue is unavailable
+    if not job_id:
+        background_tasks.add_task(coordinator_service.execute_plan_generation, task_id=task_id, user_id=user_id)
 
     return {
         "task": new_task,
@@ -117,9 +122,9 @@ async def create_task(
             "prev_hash": audit_record.get("prev_hash")
         },
         "job": {
-            "id": job_id,
-            "status": "QUEUED" if job_id else "PENDING_START",
-            "queue": "redis-arq"
+            "id": job_id or f"fastapi-bg-{task_id}",
+            "status": "QUEUED" if job_id else "RUNNING_BACKGROUND",
+            "queue": "redis-arq" if job_id else "in-process"
         }
     }
 
@@ -168,6 +173,22 @@ async def get_task_activity(
 
     runs_res = supabase.table("agent_runs").select("*, agents(name, role, public_key)").eq("task_id", task_id).eq("user_id", user_id).order("created_at", desc=False).execute()
     return runs_res.data or []
+
+@router.post("/{task_id}/coordinate", status_code=status.HTTP_200_OK)
+async def run_task_coordinate(
+    task_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Executes or re-executes Coordinator Agent Gemini reasoning call
+    to decompose the goal into structured subtasks and Ed25519-sign the plan.
+    """
+    user_id = current_user["id"]
+    try:
+        result = coordinator_service.execute_plan_generation(task_id=task_id, user_id=user_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Coordinator plan generation error: {e}")
 
 @router.post("/{task_id}/research", status_code=status.HTTP_200_OK)
 async def run_task_research(

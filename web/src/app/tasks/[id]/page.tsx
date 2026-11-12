@@ -27,7 +27,8 @@ import {
   ShoppingBag,
   ArrowRight,
   Check,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 
 interface Subtask {
@@ -113,6 +114,7 @@ function TaskActivityInner() {
   const [loading, setLoading] = useState(true);
   const [runningProcurement, setRunningProcurement] = useState(false);
   const [procurementStatus, setProcurementStatus] = useState<string | null>(null);
+  const [triggeringCoordinator, setTriggeringCoordinator] = useState(false);
 
   const { openProof } = useProof();
   const { toast } = useToast();
@@ -151,6 +153,57 @@ function TaskActivityInner() {
       setLoading(false);
     }
   }, [taskId, supabase]);
+
+  // Derived agent state
+  const coordinatorRun = runs.find(
+    (r) => (r.agents?.role === "coordinator" || r.output_payload?.plan) && r.status === "COMPLETED"
+  );
+  const coordinatorPlan = coordinatorRun?.output_payload?.plan;
+  const subtasks: Subtask[] = coordinatorPlan?.subtasks || [];
+
+  const researchRuns = runs.filter(
+    (r) => r.agents?.role === "research" || r.output_payload?.candidates
+  );
+  const latestResearchRun = researchRuns[researchRuns.length - 1];
+  const discoveredCandidates: ProviderCandidate[] = latestResearchRun?.output_payload?.candidates || [];
+
+  const serviceRuns = runs.filter(
+    (r) => r.agents?.role === "service" || r.output_payload?.proposal
+  );
+  const latestServiceRun = serviceRuns[serviceRuns.length - 1];
+  const serviceProposal = latestServiceRun?.output_payload?.proposal;
+  const sandboxQuote = latestServiceRun?.output_payload?.sandbox_quote;
+
+  const transactions = task?.transactions || [];
+
+  // Trigger Coordinator Agent decomposition on demand
+  const handleTriggerCoordinator = useCallback(async () => {
+    try {
+      setTriggeringCoordinator(true);
+      setProcurementStatus("Coordinator Agent: Decomposing goal with Google Gemini & signing plan...");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const resp = await fetch(`${apiUrl}/tasks/${taskId}/coordinate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to generate coordinator plan");
+      }
+      await fetchTaskAndActivity();
+    } catch (e: any) {
+      console.error("Coordinator error:", e);
+      toast.info("Notice", e.message || "Failed to trigger coordinator");
+    } finally {
+      setTriggeringCoordinator(false);
+      setTimeout(() => setProcurementStatus(null), 3000);
+    }
+  }, [taskId, supabase, fetchTaskAndActivity, toast]);
 
   useEffect(() => {
     fetchTaskAndActivity();
@@ -195,15 +248,48 @@ function TaskActivityInner() {
     };
   }, [taskId, fetchTaskAndActivity, supabase]);
 
+  // Auto-trigger coordinator if task has no runs yet
+  useEffect(() => {
+    if (!loading && runs.length === 0 && !triggeringCoordinator && !runningProcurement) {
+      const timer = setTimeout(() => {
+        handleTriggerCoordinator();
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, runs.length, triggeringCoordinator, runningProcurement, handleTriggerCoordinator]);
+
   // Trigger Research & Procurement Agent flow
   const handleRunProcurement = async () => {
     try {
       setRunningProcurement(true);
-      setProcurementStatus("Research Agent: Searching live web via Tavily and parsing pages...");
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      let activeSubtask = subtasks[0];
+
+      // If coordinator hasn't run yet, run coordinator first
+      if (!coordinatorRun) {
+        setProcurementStatus("Coordinator Agent: Decomposing goal with Google Gemini & signing plan...");
+        const coordResp = await fetch(`${apiUrl}/tasks/${taskId}/coordinate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        if (coordResp.ok) {
+          const coordData = await coordResp.json();
+          const generatedSubtasks = coordData.plan?.subtasks || [];
+          if (generatedSubtasks.length > 0) {
+            activeSubtask = generatedSubtasks[0];
+          }
+          await fetchTaskAndActivity();
+        }
+      }
+
+      setProcurementStatus("Research Agent: Searching live web via Tavily and parsing pages...");
 
       // 1. Run Research Agent
       const resResp = await fetch(`${apiUrl}/tasks/${taskId}/research`, {
@@ -213,9 +299,9 @@ function TaskActivityInner() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          subtask: subtasks[0] || {
+          subtask: activeSubtask || {
             title: task?.title,
-            service_category: "competitor_analysis",
+            service_category: "cloud_compute",
             allocated_budget: task?.budget_max,
           },
         }),
@@ -237,9 +323,9 @@ function TaskActivityInner() {
         },
         body: JSON.stringify({
           candidates: researchData.candidates || [],
-          subtask: subtasks[0] || {
+          subtask: activeSubtask || {
             title: task?.title,
-            service_category: "competitor_analysis",
+            service_category: "cloud_compute",
           },
         }),
       });
@@ -302,30 +388,6 @@ function TaskActivityInner() {
       alert(`Rejection error: ${err.detail}`);
     }
   };
-
-  // Find coordinator completed plan
-  const coordinatorRun = runs.find(
-    (r) => (r.agents?.role === "coordinator" || r.output_payload?.plan) && r.status === "COMPLETED"
-  );
-  const coordinatorPlan = coordinatorRun?.output_payload?.plan;
-  const subtasks: Subtask[] = coordinatorPlan?.subtasks || [];
-
-  // Find research runs and candidates
-  const researchRuns = runs.filter(
-    (r) => r.agents?.role === "research" || r.output_payload?.candidates
-  );
-  const latestResearchRun = researchRuns[researchRuns.length - 1];
-  const discoveredCandidates: ProviderCandidate[] = latestResearchRun?.output_payload?.candidates || [];
-
-  // Find service proposal runs
-  const serviceRuns = runs.filter(
-    (r) => r.agents?.role === "service" || r.output_payload?.proposal
-  );
-  const latestServiceRun = serviceRuns[serviceRuns.length - 1];
-  const serviceProposal = latestServiceRun?.output_payload?.proposal;
-  const sandboxQuote = latestServiceRun?.output_payload?.sandbox_quote;
-
-  const transactions = task?.transactions || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
@@ -709,14 +771,36 @@ function TaskActivityInner() {
         </div>
 
         {runs.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-lg p-8 text-center space-y-2">
+          <div className="bg-white border border-slate-200 rounded-lg p-8 text-center space-y-3">
             <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mx-auto" />
             <p className="text-xs font-medium text-slate-700">
-              Coordinator agent dispatched to background queue...
+              {triggeringCoordinator
+                ? "Coordinator agent analyzing goal with Gemini..."
+                : "Coordinator agent initializing..."}
             </p>
-            <p className="text-[11px] text-slate-400">
-              Evaluating goal with Google Gemini structured output and signing plan.
+            <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+              Decomposing goal into structured subtasks with Google Gemini structured output and signing Ed25519 execution plan.
             </p>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleTriggerCoordinator}
+                disabled={triggeringCoordinator}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md border border-indigo-200 transition-colors cursor-pointer"
+              >
+                {triggeringCoordinator ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Planning with Gemini...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Decompose Goal Now</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
