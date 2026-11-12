@@ -338,7 +338,10 @@ function TaskActivityInner() {
       setProcurementStatus("Complete! Transaction evaluated by Trust Engine.");
       await fetchTaskAndActivity();
     } catch (e: any) {
-      alert(`Procurement error: ${e.message}`);
+      const msg = e.message === "Failed to fetch"
+        ? "Core API is not reachable at http://localhost:8000. Please ensure the backend server is running."
+        : e.message;
+      toast.error("Procurement Failed", msg);
     } finally {
       setRunningProcurement(false);
       setTimeout(() => setProcurementStatus(null), 3000);
@@ -362,8 +365,8 @@ function TaskActivityInner() {
     if (res.ok) {
       fetchTaskAndActivity();
     } else {
-      const err = await res.json();
-      alert(`Approval error: ${err.detail}`);
+      const err = await res.json().catch(() => ({}));
+      toast.error("Approval Error", err.detail || "Failed to approve transaction");
     }
   };
 
@@ -384,8 +387,8 @@ function TaskActivityInner() {
     if (res.ok) {
       fetchTaskAndActivity();
     } else {
-      const err = await res.json();
-      alert(`Rejection error: ${err.detail}`);
+      const err = await res.json().catch(() => ({}));
+      toast.error("Rejection Error", err.detail || "Failed to reject transaction");
     }
   };
 
