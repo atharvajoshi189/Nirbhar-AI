@@ -257,3 +257,38 @@ async def run_task_propose(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Service agent proposal error: {traceback.format_exc()}")
 
+@router.delete("/{task_id}", status_code=status.HTTP_200_OK)
+async def delete_task(
+    task_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Deletes a task and its associated policies/runs/transactions (cascaded).
+    Enforces user ownership check.
+    """
+    user_id = current_user["id"]
+    supabase = get_supabase_admin_client()
+
+    task_res = supabase.table("tasks").select("id, title").eq("id", task_id).eq("user_id", user_id).execute()
+    if not task_res.data:
+        raise HTTPException(status_code=404, detail="Task not found or access denied")
+
+    task_title = task_res.data[0].get("title", "")
+
+    # Delete task from Supabase (cascades to task_policies, agent_runs, transactions, quotes)
+    supabase.table("tasks").delete().eq("id", task_id).eq("user_id", user_id).execute()
+
+    # Append audit trail event
+    try:
+        audit_service.append_event(
+            user_id=user_id,
+            event_type="TASK_DELETED",
+            task_id=None,
+            payload={"deleted_task_id": task_id, "title": task_title}
+        )
+    except Exception as e:
+        print(f"[Warning] Failed to append TASK_DELETED audit event: {e}")
+
+    return {"status": "DELETED", "task_id": task_id}
+
+

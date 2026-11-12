@@ -28,7 +28,8 @@ import {
   ArrowRight,
   Check,
   X,
-  Loader2
+  Loader2,
+  Trash2,
 } from "lucide-react";
 
 interface Subtask {
@@ -392,6 +393,45 @@ function TaskActivityInner() {
     }
   };
 
+  const [deletingTask, setDeletingTask] = useState(false);
+  const handleDeleteTask = async () => {
+    if (!task) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${task.title}"?\nAll associated subtasks, quotes, and runs will be permanently removed.`
+      )
+    ) {
+      return;
+    }
+    setDeletingTask(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Auth required", "You must be signed in to delete tasks.");
+        return;
+      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/tasks/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to delete task");
+      }
+      toast.success("Task deleted", `"${task.title}" has been deleted.`);
+      window.location.href = "/";
+    } catch (e: any) {
+      toast.error("Delete failed", e.message || "Failed to delete task");
+    } finally {
+      setDeletingTask(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Navigation Bar */}
@@ -410,6 +450,19 @@ function TaskActivityInner() {
           >
             <RefreshCw className="w-3 h-3" />
             <span>Refresh</span>
+          </button>
+          <button
+            onClick={handleDeleteTask}
+            disabled={deletingTask}
+            title="Delete this task"
+            className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 bg-white border border-rose-200 hover:bg-rose-50 px-2.5 py-1 rounded-md shadow-2xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deletingTask ? (
+              <Loader2 className="w-3 h-3 animate-spin text-rose-500" />
+            ) : (
+              <Trash2 className="w-3 h-3" />
+            )}
+            <span>{deletingTask ? "Deleting..." : "Delete Task"}</span>
           </button>
         </div>
       </div>

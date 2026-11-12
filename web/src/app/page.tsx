@@ -8,6 +8,7 @@ import { ProofChip } from "@/components/ProofChip";
 import { EmptyState } from "@/components/EmptyState";
 import { CardSkeleton, StatSkeleton } from "@/components/SkeletonLoader";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/context/ToastContext";
 import {
   Layers,
   CheckCircle2,
@@ -17,6 +18,8 @@ import {
   Bot,
   ChevronLeft,
   ChevronRight,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -53,8 +56,53 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const { toast } = useToast();
   const supabase = createClient();
+
+  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${taskTitle}"?\nAll associated plans, quotes, and runs will be permanently removed.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(taskId);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Auth required", "You must be signed in to delete tasks.");
+        return;
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/tasks/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to delete task");
+      }
+
+      toast.success("Task deleted", `"${taskTitle}" removed.`);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      setStats((prev) =>
+        prev ? { ...prev, tasks_count: Math.max(0, prev.tasks_count - 1) } : null
+      );
+    } catch (err: any) {
+      toast.error("Delete failed", err.message || "Failed to delete task");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     async function loadDashboard() {
@@ -299,6 +347,20 @@ export default function DashboardPage() {
                         >
                           Activity
                         </Link>
+
+                        <button
+                          type="button"
+                          disabled={deletingId === t.id}
+                          onClick={() => handleDeleteTask(t.id, t.title)}
+                          title="Delete task"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deletingId === t.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   );
