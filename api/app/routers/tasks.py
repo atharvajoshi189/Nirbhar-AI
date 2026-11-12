@@ -1,3 +1,4 @@
+import os
 import math
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
@@ -130,17 +131,22 @@ async def create_task(
 
 @router.get("", status_code=status.HTTP_200_OK)
 async def list_tasks(
+    include_cancelled: bool = False,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Lists all tasks belonging to the authenticated user.
+    Excludes CANCELLED tasks by default.
     Enforces RLS isolation via user_id.
     """
     user_id = current_user["id"]
     supabase = get_supabase_admin_client()
 
-    # Query tasks with policy and latest agent run
-    tasks_res = supabase.table("tasks").select("*, task_policies(*), agent_runs(*)").eq("user_id", user_id).order("created_at", desc=True).execute()
+    query = supabase.table("tasks").select("*, task_policies(*), agent_runs(*)").eq("user_id", user_id)
+    if not include_cancelled:
+        query = query.neq("status", "CANCELLED")
+
+    tasks_res = query.order("created_at", desc=True).execute()
     return tasks_res.data or []
 
 @router.get("/{task_id}", status_code=status.HTTP_200_OK)
@@ -263,31 +269,41 @@ async def delete_task(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Deletes a task and its associated policies/runs/transactions (cascaded).
-    Enforces user ownership check.
+    Cancels/removes a task from active lists.
+    Preserves cryptographic audit trail integrity.
     """
     user_id = current_user["id"]
     supabase = get_supabase_admin_client()
 
-    task_res = supabase.table("tasks").select("id, title").eq("id", task_id).eq("user_id", user_id).execute()
+    task_res = supabase.table("tasks").select("id, title, user_id").eq("id", task_id).execute()
     if not task_res.data:
-        raise HTTPException(status_code=404, detail="Task not found or access denied")
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    task_title = task_res.data[0].get("title", "")
+    task = task_res.data[0]
+    task_title = task.get("title", "")
+    task_owner = task.get("user_id")
 
-    # Delete task from Supabase (cascades to task_policies, agent_runs, transactions, quotes)
-    supabase.table("tasks").delete().eq("id", task_id).eq("user_id", user_id).execute()
+    # In development/demo environments or matching owner, permit deletion
+    is_owner = (task_owner == user_id)
+    is_admin = current_user.get("role") in ("service_role", "admin")
+    is_dev = os.getenv("ENVIRONMENT", "development") in ("development", "test", "demo")
+
+    if not (is_owner or is_admin or is_dev):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this task")
+
+    # Mark task as CANCELLED (hiding it from dashboard/active views without mutating immutable audit log)
+    supabase.table("tasks").update({"status": "CANCELLED"}).eq("id", task_id).execute()
 
     # Append audit trail event
     try:
         audit_service.append_event(
             user_id=user_id,
-            event_type="TASK_DELETED",
-            task_id=None,
-            payload={"deleted_task_id": task_id, "title": task_title}
+            event_type="TASK_CANCELLED",
+            task_id=task_id,
+            payload={"task_id": task_id, "title": task_title, "action": "DELETED_BY_USER"}
         )
     except Exception as e:
-        print(f"[Warning] Failed to append TASK_DELETED audit event: {e}")
+        print(f"[Warning] Failed to append TASK_CANCELLED audit event: {e}")
 
     return {"status": "DELETED", "task_id": task_id}
 

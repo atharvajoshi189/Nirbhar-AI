@@ -50,16 +50,16 @@ def delete_task(task_id: str):
         return False
     
     task = res.data[0]
-    # Delete from tasks (cascades to task_policies, agent_runs, quotes, transactions, trust_decisions, user_approvals)
-    supabase.table("tasks").delete().eq("id", task_id).execute()
+    # Mark task as CANCELLED (hiding it from dashboard/active views without mutating immutable audit log)
+    supabase.table("tasks").update({"status": "CANCELLED"}).eq("id", task_id).execute()
 
     # Record audit event
     try:
         audit_service.append_event(
             user_id=task.get("user_id"),
-            event_type="TASK_DELETED",
-            task_id=None,
-            payload={"deleted_task_id": task_id, "title": task.get("title")}
+            event_type="TASK_CANCELLED",
+            task_id=task_id,
+            payload={"task_id": task_id, "title": task.get("title"), "action": "DELETED_BY_USER"}
         )
     except Exception:
         pass
@@ -122,3 +122,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

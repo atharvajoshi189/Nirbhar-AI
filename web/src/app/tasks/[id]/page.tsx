@@ -413,11 +413,15 @@ function TaskActivityInner() {
         return;
       }
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${session.access_token}`,
+      };
+      if (session.user?.id) {
+        headers["X-User-Id"] = session.user.id;
+      }
       const res = await fetch(`${apiUrl}/tasks/${taskId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers,
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
