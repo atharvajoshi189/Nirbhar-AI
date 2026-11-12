@@ -117,9 +117,11 @@ def test_audit_chain_detects_dropped_sequence(audit_service):
 
 @pytest.mark.asyncio
 async def test_live_audit_verify_api():
-    """Verify live FastAPI /audit/verify endpoint."""
-    import httpx
-    async with httpx.AsyncClient(base_url="http://127.0.0.1:8000", timeout=10.0) as client:
+    """Verify FastAPI /audit/verify endpoint."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test", timeout=10.0) as client:
         res = await client.get("/audit/verify")
         assert res.status_code == 200
         data = res.json()
@@ -130,9 +132,11 @@ async def test_live_audit_verify_api():
 
 @pytest.mark.asyncio
 async def test_live_audit_events_pagination_api():
-    """Verify live FastAPI /audit/events paginated list endpoint."""
-    import httpx
-    async with httpx.AsyncClient(base_url="http://127.0.0.1:8000", timeout=10.0) as client:
+    """Verify FastAPI /audit/events paginated list endpoint."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test", timeout=10.0) as client:
         res = await client.get("/audit/events?limit=5&offset=0")
         assert res.status_code == 200
         data = res.json()
