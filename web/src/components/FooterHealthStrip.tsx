@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { RefreshCw, Activity, ExternalLink, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProofData } from "./ProofDrawer";
+import { useProof } from "@/context/ProofContext";
 
 export interface ServiceTelemetry {
   name: string;
@@ -31,12 +32,18 @@ export interface HealthApiResponse {
 }
 
 interface FooterHealthStripProps {
-  onOpenProof: (data: ProofData) => void;
+  onOpenProof?: (data: ProofData) => void;
 }
 
 export const FooterHealthStrip: React.FC<FooterHealthStripProps> = ({
   onOpenProof,
 }) => {
+  const { openProof: globalOpenProof } = useProof();
+
+  const handleProof = (data: ProofData) => {
+    if (onOpenProof) onOpenProof(data);
+    else globalOpenProof(data);
+  };
   const [health, setHealth] = useState<HealthApiResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +101,7 @@ export const FooterHealthStrip: React.FC<FooterHealthStripProps> = ({
     }
 
     const handleClick = () => {
-      onOpenProof({
+      handleProof({
         title: `${displayName} Telemetry Proof`,
         sha256: health?.proof?.sha256,
         latency_ms: service?.latency_ms,
@@ -146,14 +153,15 @@ export const FooterHealthStrip: React.FC<FooterHealthStripProps> = ({
           <button
             type="button"
             onClick={() =>
-              onOpenProof({
+              handleProof({
                 title: "System Health Proof Digest",
                 sha256: health.proof?.sha256,
                 timestamp: health.timestamp,
+                api_name: "Internal Health Monitor",
                 raw: health,
               })
             }
-            className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[11px] text-slate-500 hover:text-indigo-600 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[11px] text-slate-500 hover:text-indigo-600 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 rounded px-1"
           >
             <ShieldCheck className="w-3 h-3 text-indigo-500" />
             <span>sha256:{health.proof.sha256.slice(0, 10)}...</span>

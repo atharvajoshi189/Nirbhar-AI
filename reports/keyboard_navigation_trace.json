@@ -1,0 +1,90 @@
+[
+  {
+    "step": "1.0",
+    "action": "Navigate to /login"
+  },
+  {
+    "step": "1.1",
+    "action": "Tab to 'Continue with Email' button"
+  },
+  {
+    "step": "1.2",
+    "action": "Focused button: 'Continue with Email'"
+  },
+  {
+    "step": "1.3",
+    "action": "Active input after opening email form: #login-email"
+  },
+  {
+    "step": "1.4",
+    "action": "Typed email: user_a_nirbhar@test.com"
+  },
+  {
+    "step": "1.5",
+    "action": "Active input after Tab: #login-password"
+  },
+  {
+    "step": "1.6",
+    "action": "Typed password"
+  },
+  {
+    "step": "1.7",
+    "action": "Focused submit button: 'Sign In'"
+  },
+  {
+    "step": "1.8",
+    "action": "Pressed Enter to authenticate"
+  },
+  {
+    "step": "1.9",
+    "action": "Authenticated successfully. On Dashboard (/)"
+  },
+  {
+    "step": "2.0",
+    "action": "Tabbing through sidebar navigation to 'New Task'"
+  },
+  {
+    "step": "2.1",
+    "action": "Focused link 'New Task' (/tasks/new)"
+  },
+  {
+    "step": "2.2",
+    "action": "Successfully navigated to /tasks/new via keyboard"
+  },
+  {
+    "step": "3.0",
+    "action": "Tabbing into form fields on /tasks/new"
+  },
+  {
+    "step": "3.1",
+    "action": "Focused #task-description"
+  },
+  {
+    "step": "3.2",
+    "action": "Typed task description"
+  },
+  {
+    "step": "3.3",
+    "action": "Focused #task-budget-max"
+  },
+  {
+    "step": "3.4",
+    "action": "Focused #auto-approve-threshold"
+  },
+  {
+    "step": "3.5",
+    "action": "Focused #"
+  },
+  {
+    "step": "3.6",
+    "action": "Focused submit button: 'Start Task'"
+  },
+  {
+    "step": "3.7",
+    "action": "Task created via keyboard! Current URL: http://localhost:3000/tasks/new"
+  },
+  {
+    "step": "4.0",
+    "action": "Saved screenshot: D:\\Devpost(Nirbhar-Ai)\\Nirbhar-AI\\reports\\phase6_keyboard_navigation_result.png"
+  }
+]

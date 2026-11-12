@@ -6,8 +6,10 @@ import { useParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProofChip } from "@/components/ProofChip";
-import { ProofDrawer, ProofData } from "@/components/ProofDrawer";
+import { ProofData } from "@/components/ProofDrawer";
 import { TrustReviewCard, TrustReviewData } from "@/components/TrustReviewCard";
+import { useProof } from "@/context/ProofContext";
+import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
@@ -111,9 +113,9 @@ function TaskActivityInner() {
   const [loading, setLoading] = useState(true);
   const [runningProcurement, setRunningProcurement] = useState(false);
   const [procurementStatus, setProcurementStatus] = useState<string | null>(null);
-  const [proofData, setProofData] = useState<ProofData | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const { openProof } = useProof();
+  const { toast } = useToast();
   const supabase = createClient();
 
   const fetchTaskAndActivity = useCallback(async () => {
@@ -192,11 +194,6 @@ function TaskActivityInner() {
       clearInterval(pollInterval);
     };
   }, [taskId, fetchTaskAndActivity, supabase]);
-
-  const openProof = (data: ProofData) => {
-    setProofData(data);
-    setDrawerOpen(true);
-  };
 
   // Trigger Research & Procurement Agent flow
   const handleRunProcurement = async () => {
@@ -858,13 +855,6 @@ function TaskActivityInner() {
           </div>
         )}
       </div>
-
-      {/* Verifiable Proof Drawer */}
-      <ProofDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        data={proofData}
-      />
     </div>
   );
 }

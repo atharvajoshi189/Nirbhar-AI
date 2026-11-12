@@ -15,7 +15,10 @@ class AuditEventInput(BaseModel):
     payload: Dict[str, Any]
 
 @router.get("/verify", response_model=ChainVerificationResult)
-async def verify_audit_chain(user_id: Optional[str] = Query(None, description="Optional filter by user_id")):
+async def verify_audit_chain(
+    user_id: Optional[str] = Query(None, description="Optional filter by user_id"),
+    simulate_tamper: bool = Query(False, description="Simulate an in-flight tampered record for verification drills")
+):
     """
     Recomputes the entire audit chain and verifies tamper-evidence.
     Rule 3: audit_events stores prev_hash and hash (SHA-256 over prev_hash + payload + AUDIT_SECRET).
@@ -29,6 +32,11 @@ async def verify_audit_chain(user_id: Optional[str] = Query(None, description="O
         
         response = query.execute()
         events = response.data or []
+        if simulate_tamper and len(events) >= 2:
+            import copy
+            events = copy.deepcopy(events)
+            events[1]["payload"]["tampered_amount"] = 999999.00
+
         return audit_service.verify_chain(events)
     except ValueError as ve:
         # Credential missing
@@ -40,6 +48,43 @@ async def verify_audit_chain(user_id: Optional[str] = Query(None, description="O
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Audit chain verification error: {str(e)}"
+        )
+
+@router.get("/events")
+async def list_audit_events(
+    user_id: Optional[str] = Query(None, description="Filter by user_id"),
+    task_id: Optional[str] = Query(None, description="Filter by task_id"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Retrieves paginated immutable audit events with linked task metadata.
+    """
+    try:
+        supabase = get_supabase_admin_client()
+        query = (
+            supabase.table("audit_events")
+            .select("*, tasks(id, title)", count="exact")
+            .order("sequence_number", desc=True)
+        )
+        if user_id:
+            query = query.eq("user_id", user_id)
+        if task_id:
+            query = query.eq("task_id", task_id)
+
+        query = query.range(offset, offset + limit - 1)
+        response = query.execute()
+
+        return {
+            "events": response.data or [],
+            "total": response.count if response.count is not None else len(response.data or []),
+            "limit": limit,
+            "offset": offset,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch audit events: {str(e)}"
         )
 
 @router.post("/events")

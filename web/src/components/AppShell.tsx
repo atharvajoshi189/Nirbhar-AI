@@ -4,25 +4,15 @@ import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { FooterHealthStrip } from "./FooterHealthStrip";
-import { ProofDrawer, ProofData } from "./ProofDrawer";
+import { ProofProvider } from "@/context/ProofContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children }) => {
-  const [proofData, setProofData] = useState<ProofData | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+const AppShellInner: React.FC<AppShellProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-
-  const handleOpenProof = (data: ProofData) => {
-    setProofData(data);
-    setDrawerOpen(true);
-  };
-
-  const handleCloseProof = () => {
-    setDrawerOpen(false);
-  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50">
@@ -38,23 +28,25 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <TopBar onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
 
         {/* Dynamic Content Pane */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/60">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/60 focus:outline-hidden">
           <div className="max-w-6xl mx-auto space-y-6">
             {children}
           </div>
         </main>
 
         {/* Persistent Bottom Health Strip */}
-        <FooterHealthStrip onOpenProof={handleOpenProof} />
+        <FooterHealthStrip />
       </div>
-
-      {/* Verifiable Proof Drawer */}
-      <ProofDrawer
-        isOpen={drawerOpen}
-        onClose={handleCloseProof}
-        data={proofData}
-      />
     </div>
   );
 };
 
+export const AppShell: React.FC<AppShellProps> = ({ children }) => {
+  return (
+    <ToastProvider>
+      <ProofProvider>
+        <AppShellInner>{children}</AppShellInner>
+      </ProofProvider>
+    </ToastProvider>
+  );
+};

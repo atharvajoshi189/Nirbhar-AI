@@ -139,22 +139,23 @@ export default function NewTaskPage() {
         <form noValidate onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-6 shadow-2xs space-y-5">
           {/* Field 1: Task Description */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-700">
+            <label htmlFor="task-description" className="block text-xs font-semibold text-slate-800">
               Task Description <span className="text-rose-500">*</span>
             </label>
             <textarea
-              rows={4}
+              id="task-description"
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Set up a cloud database instance and deploy static landing page edge assets within budget."
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400 resize-none font-sans"
+              placeholder="e.g. Procure competitor pricing intelligence scan within budget limits."
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 text-slate-900 placeholder:text-slate-400 resize-none font-sans"
             />
           </div>
 
           {/* Grid: Field 2 (Max Budget) & Field 3 (Currency) */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-700">
+              <label htmlFor="task-budget-max" className="block text-xs font-semibold text-slate-800">
                 Max Budget <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -162,23 +163,25 @@ export default function NewTaskPage() {
                   $
                 </span>
                 <input
+                  id="task-budget-max"
                   type="text"
                   inputMode="decimal"
                   value={budgetMax}
                   onChange={(e) => setBudgetMax(e.target.value)}
-                  className="w-full pl-7 pr-3 py-2 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:border-indigo-600 text-slate-900 font-mono"
+                  className="w-full pl-7 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 text-slate-900 font-mono"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-700">
+              <label htmlFor="task-currency" className="block text-xs font-semibold text-slate-800">
                 Currency
               </label>
               <select
+                id="task-currency"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:border-indigo-600 text-slate-900 bg-white"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 text-slate-900 bg-white"
               >
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
@@ -256,8 +259,8 @@ export default function NewTaskPage() {
 
             {approvalMode === "above_limit" && (
               <div className="pt-2">
-                <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-md border border-slate-200">
-                  <label className="text-[11px] font-medium text-slate-600 shrink-0">
+                <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <label htmlFor="auto-approve-threshold" className="text-xs font-semibold text-slate-700 shrink-0">
                     Auto-approve payments under:
                   </label>
                   <div className="relative w-32">
@@ -265,16 +268,17 @@ export default function NewTaskPage() {
                       $
                     </span>
                     <input
+                      id="auto-approve-threshold"
                       type="number"
                       step="1"
                       min="1"
                       max={budgetMax}
                       value={autoApproveThreshold}
                       onChange={(e) => setAutoApproveThreshold(e.target.value)}
-                      className="w-full pl-6 pr-2 py-1 text-xs border border-slate-200 rounded bg-white text-slate-900 font-mono"
+                      className="w-full pl-6 pr-2 py-1 text-xs border border-slate-200 rounded-md bg-white text-slate-900 font-mono focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600"
                     />
                   </div>
-                  <span className="text-[11px] text-slate-500">USD</span>
+                  <span className="text-xs font-mono text-slate-500">USD</span>
                 </div>
               </div>
             )}
@@ -285,9 +289,9 @@ export default function NewTaskPage() {
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center justify-between w-full text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer"
+              className="flex items-center justify-between w-full text-xs font-semibold text-slate-700 hover:text-slate-900 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 rounded p-1"
             >
-              <span>Advanced policy (Optional)</span>
+              <span>Advanced policy controls (Optional)</span>
               {showAdvanced ? (
                 <ChevronUp className="w-4 h-4 text-slate-400" />
               ) : (
@@ -296,53 +300,56 @@ export default function NewTaskPage() {
             </button>
 
             {showAdvanced && (
-              <div className="mt-4 space-y-4 bg-slate-50 p-4 rounded-md border border-slate-200">
+              <div className="mt-4 space-y-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-slate-700">
+                  <label htmlFor="allowed-categories" className="block text-xs font-semibold text-slate-700">
                     Allowed Service Categories
                   </label>
                   <input
+                    id="allowed-categories"
                     type="text"
                     value={allowedCategories}
                     onChange={(e) => setAllowedCategories(e.target.value)}
                     placeholder="e.g. Cloud Compute, Hosting, Domain, API Credits"
-                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white text-slate-900"
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-white text-slate-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600"
                   />
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[11px] text-slate-500">
                     Comma-separated list of approved capability categories.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-slate-700">
+                  <label htmlFor="allowed-domains" className="block text-xs font-semibold text-slate-700">
                     Provider Domain Allowlist
                   </label>
                   <input
+                    id="allowed-domains"
                     type="text"
                     value={allowedDomains}
                     onChange={(e) => setAllowedDomains(e.target.value)}
-                    placeholder="e.g. aws.amazon.com, supabase.com, cloudflare.com"
-                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white text-slate-900 font-mono"
+                    placeholder="e.g. 127.0.0.1, localhost, marketpulse.io"
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-white text-slate-900 font-mono focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600"
                   />
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[11px] text-slate-500">
                     Strict mode: only quotes from these domains will be approved without human intervention.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-slate-700">
+                  <label htmlFor="single-tx-limit" className="block text-xs font-semibold text-slate-700">
                     Single Transaction Hard Limit ($)
                   </label>
                   <input
+                    id="single-tx-limit"
                     type="number"
                     step="0.01"
                     value={singleTxLimit}
                     onChange={(e) => setSingleTxLimit(e.target.value)}
                     placeholder={`Defaults to max budget ($${budgetMax})`}
-                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white text-slate-900 font-mono"
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-white text-slate-900 font-mono focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600"
                   />
-                  <p className="text-[10px] text-slate-500">
-                    Any single item exceeding this requires human review regardless of auto-approve threshold.
+                  <p className="text-[11px] text-slate-500">
+                    Any single item exceeding this requires human review regardless of threshold.
                   </p>
                 </div>
               </div>

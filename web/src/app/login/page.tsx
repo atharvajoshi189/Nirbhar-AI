@@ -127,26 +127,38 @@ export default function LoginPage() {
             </>
           ) : (
             <form onSubmit={handleEmailSubmit} className="space-y-3">
-              <input
-                type="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                className="w-full h-11 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
-              />
-              <input
-                type="password"
-                placeholder="Password (optional for magic link)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
-              />
+              <div>
+                <label htmlFor="login-email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  className="w-full h-11 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 shadow-2xs"
+                />
+              </div>
+              <div>
+                <label htmlFor="login-password" className="sr-only">
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  placeholder="Password (optional for magic link)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-11 px-3 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 shadow-2xs"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 px-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                className="w-full h-11 px-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -163,7 +175,7 @@ export default function LoginPage() {
                   setEmailMode(false);
                   setMessage(null);
                 }}
-                className="text-[11px] text-slate-500 hover:text-slate-700 transition-colors"
+                className="text-xs text-slate-500 hover:text-slate-700 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 rounded p-1"
               >
                 Back to options
               </button>

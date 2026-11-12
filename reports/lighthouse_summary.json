@@ -1,0 +1,30 @@
+{
+  "Dashboard": {
+    "url": "http://localhost:3000/",
+    "performance": 77,
+    "accessibility": 95,
+    "best_practices": 100,
+    "seo": 100
+  },
+  "New Task": {
+    "url": "http://localhost:3000/tasks/new",
+    "performance": 72,
+    "accessibility": 96,
+    "best_practices": 100,
+    "seo": 100
+  },
+  "Trust Review": {
+    "url": "http://localhost:3000/tasks/cf12314b-7866-48d0-ac13-bc7f9cf5714d",
+    "performance": 29,
+    "accessibility": 93,
+    "best_practices": 100,
+    "seo": 100
+  },
+  "Audit Log": {
+    "url": "http://localhost:3000/audit",
+    "performance": 72,
+    "accessibility": 96,
+    "best_practices": 100,
+    "seo": 100
+  }
+}

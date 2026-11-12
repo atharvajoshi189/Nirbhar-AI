@@ -47,6 +47,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+.chrome_user_data/
 
 # Coverage and test caches
 .coverage

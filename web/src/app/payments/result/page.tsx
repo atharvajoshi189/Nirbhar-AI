@@ -4,7 +4,8 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { ProofChip } from "@/components/ProofChip";
-import { ProofDrawer, ProofData } from "@/components/ProofDrawer";
+import { ProofData } from "@/components/ProofDrawer";
+import { useProof } from "@/context/ProofContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   CheckCircle2,
@@ -32,9 +33,8 @@ function PaymentResultContent() {
   const [txData, setTxData] = useState<any>(null);
   const [paypalOrder, setPaypalOrder] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeProof, setActiveProof] = useState<ProofData | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const { openProof } = useProof();
   const supabase = createClient();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -130,11 +130,13 @@ function PaymentResultContent() {
     const orderId = paypalOrder?.paypal_order_id || token || "N/A";
     const captureId = paypalOrder?.paypal_capture_id || "N/A";
 
-    setActiveProof({
+    openProof({
       title: `PayPal Sandbox Settlement Proof: ${orderId}`,
+      request_id: orderId,
+      model_name: "Trust Engine & Settlement Rails",
+      api_name: "PayPal Orders v2 REST API (Sandbox)",
       sha256: txData.trust_decisions?.[0]?.decision_hash || undefined,
       timestamp: paypalOrder?.updated_at || txData.updated_at || new Date().toISOString(),
-      source: "PayPal Orders v2 REST API (Sandbox)",
       raw: {
         settlement_status: settlementStatus,
         transaction_id: txData.id,
@@ -150,7 +152,6 @@ function PaymentResultContent() {
         user_approvals: txData.user_approvals,
       },
     });
-    setDrawerOpen(true);
   };
 
   if (loading || capturing) {
@@ -212,9 +213,9 @@ function PaymentResultContent() {
           </h1>
 
           <p className="text-sm text-slate-600 mt-2 max-w-lg mx-auto">
-            {isCompleted && "Funds have been captured via PayPal Sandbox Orders v2. Telemetry and proofs are immutably archived."}
-            {isCancelled && "The PayPal checkout was cancelled before authorization. No funds were debited."}
-            {isFailed && (errorMessage || "The payment could not be captured or was declined by PayPal.")}
+            {isCompleted && "Funds captured via PayPal Orders v2. Telemetry archived to audit chain."}
+            {isCancelled && "PayPal checkout was cancelled. No funds were debited."}
+            {isFailed && (errorMessage || "Payment declined or could not be captured by PayPal.")}
           </p>
         </div>
 
@@ -309,12 +310,6 @@ function PaymentResultContent() {
           </div>
         </div>
       </div>
-
-      <ProofDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        data={activeProof}
-      />
     </div>
   );
 }
