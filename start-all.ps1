@@ -1,5 +1,5 @@
-# Nirbhar AI — Start All Services
-$python = if (Get-Command python -ErrorAction SilentlyContinue) { "python" } elseif (Test-Path "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe") { "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" } elseif (Test-Path "$env:LOCALAPPDATA\Python\pythoncore-3.14-64\python.exe") { "$env:LOCALAPPDATA\Python\pythoncore-3.14-64\python.exe" } else { "python" }
+﻿# Nirbhar AI — Start All Services
+$python = if (Test-Path "$env:LOCALAPPDATA\Python\bin\python3.14.exe") { "$env:LOCALAPPDATA\Python\bin\python3.14.exe" } elseif (Test-Path "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe") { "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" } elseif (Test-Path "$env:LOCALAPPDATA\Python\pythoncore-3.14-64\python.exe") { "$env:LOCALAPPDATA\Python\pythoncore-3.14-64\python.exe" } elseif (Get-Command python -ErrorAction SilentlyContinue) { "python" } else { "python" }
 
 Write-Host "Starting Nirbhar AI services..." -ForegroundColor Cyan
 
